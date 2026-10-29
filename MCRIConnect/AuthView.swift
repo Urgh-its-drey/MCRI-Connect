@@ -1,11 +1,8 @@
 import SwiftUI
 
-// Replace your existing AuthView.swift with this file.
-// Uses your existing Brand and UserRole definitions; do not redefine them here.
-// Requires iOS 16 or later.
 struct AuthView: View {
     var onSignIn: ((String, String) async throws -> Void)? = nil
-    // Arguments: full name, email, password, role.
+   
     var onSignUp: ((String, String, String, UserRole) async throws -> Void)? = nil
     var onForgotPassword: (() -> Void)? = nil
 

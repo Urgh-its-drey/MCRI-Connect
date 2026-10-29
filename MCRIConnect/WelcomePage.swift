@@ -61,7 +61,7 @@ struct WelcomePage: View {
                         .frame(maxWidth: .infinity, alignment: .center)
                         
                         NavigationLink {
-                            LoginView()
+                            AuthView()
                         } label: {
                             HStack {
                                 Spacer()

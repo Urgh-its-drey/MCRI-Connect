@@ -1,13 +1,13 @@
 import SwiftUI
 
-/// First frame on launch: brandmark, promise, and the loading tell.
 struct SplashView: View {
     @State private var ringProgress = 0.0
     @State private var contentVisible = false
 
     var body: some View {
         ZStack {
-            MCRITheme.background.ignoresSafeArea()
+            MCRITheme.background
+                .ignoresSafeArea()
 
             VStack(spacing: 0) {
                 Spacer()
@@ -15,12 +15,22 @@ struct SplashView: View {
                 ZStack {
                     Circle()
                         .trim(from: 0, to: ringProgress)
-                        .stroke(MCRITheme.primaryAction,
-                                style: StrokeStyle(lineWidth: 3.4, lineCap: .round))
+                        .stroke(
+                            MCRITheme.primaryAction,
+                            style: StrokeStyle(
+                                lineWidth: 3.4,
+                                lineCap: .round
+                            )
+                        )
                         .rotationEffect(.degrees(-90))
                         .frame(width: 108, height: 108)
 
-                    MCRIBrandMark(size: 74, filled: false)
+                    Image("MatterLogo")
+                        .renderingMode(.original)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 74, height: 74)
+                        .accessibilityHidden(true)
                 }
 
                 VStack(spacing: MCRITheme.Spacing.s3) {
@@ -57,20 +67,27 @@ struct SplashView: View {
                 VStack(spacing: MCRITheme.Spacing.s4) {
                     HStack(spacing: 6) {
                         ForEach(0..<3, id: \.self) { index in
-                            SplashDot(delay: Double(index) * 0.16)
+                            SplashDot(
+                                delay: Double(index) * 0.16
+                            )
                         }
                     }
 
-                    Text("Cohort 2026 · 248 students · 38 employers")
-                        .font(.mcriCaption2)
-                        .foregroundStyle(MCRITheme.textTertiary.opacity(0.7))
                 }
+                .padding(.horizontal, MCRITheme.Spacing.s4)
                 .padding(.bottom, MCRITheme.Spacing.s8)
             }
         }
         .onAppear {
-            withAnimation(.easeOut(duration: 0.8)) { ringProgress = 0.94 }
-            withAnimation(.easeOut(duration: 0.5).delay(0.25)) { contentVisible = true }
+            withAnimation(.easeOut(duration: 0.8)) {
+                ringProgress = 0.94
+            }
+
+            withAnimation(
+                .easeOut(duration: 0.5).delay(0.25)
+            ) {
+                contentVisible = true
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("MCRI Connect, internship matching")
@@ -79,6 +96,7 @@ struct SplashView: View {
 
 private struct SplashDot: View {
     var delay: Double
+
     @State private var raised = false
 
     var body: some View {
@@ -88,15 +106,18 @@ private struct SplashDot: View {
             .opacity(raised ? 1 : 0.3)
             .offset(y: raised ? -2 : 0)
             .onAppear {
-                withAnimation(.easeInOut(duration: 0.55).repeatForever(autoreverses: true)
-                    .delay(delay)) { raised = true }
+                withAnimation(
+                    .easeInOut(duration: 0.55)
+                        .repeatForever(autoreverses: true)
+                        .delay(delay)
+                ) {
+                    raised = true
+                }
             }
             .accessibilityHidden(true)
     }
 }
 
-private struct SplashViewPreview1: PreviewProvider {
-    static var previews: some View {
+#Preview {
     SplashView()
-}
 }

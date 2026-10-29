@@ -1,12 +1,11 @@
 import SwiftUI
 
-// iOS 16+. Use TalentBridgeLaunchView() in your existing app's WindowGroup.
-// No Supabase, authentication, network loading, or dependencies on other files.
+
 struct TalentBridgeLaunchView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showingSplash = true
 
-    // Three seconds. Change this single value to adjust the display time.
+   
     private let splashDurationNanoseconds: UInt64 = 3_000_000_000
 
     var body: some View {
@@ -26,7 +25,7 @@ struct TalentBridgeLaunchView: View {
             do {
                 try await Task.sleep(nanoseconds: splashDurationNanoseconds)
             } catch {
-                // View dismissal cancels the delay; do not navigate after cancellation.
+                
                 return
             }
             guard !Task.isCancelled else { return }

@@ -57,7 +57,7 @@ struct StudentDashboardView: View {
   private var tabContent: some View {
     switch tab {
     case .home: home
-    case .explore: Explore()
+    case .explore: ExploreView()
     case .applications: applications
     case .messages: messages
     case .profile: profile

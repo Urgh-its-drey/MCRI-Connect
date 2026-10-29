@@ -1,21 +1,18 @@
 import SwiftUI
 
-// Replace your existing AuthView.swift with this file.
-// Uses your existing Brand and UserRole definitions; do not redefine them here.
-// Requires iOS 16 or later.
 struct AuthView: View {
-    var onSignIn: ((String, String) async throws -> Void)? = nil
-    // Arguments: full name, email, password, role.
-    var onSignUp: ((String, String, String, UserRole) async throws -> Void)? = nil
+    var onSignIn: (@MainActor (String, String) async throws -> Void)? = nil
+   
+    var onSignUp: (@MainActor (String, String, String, UserRole) async throws -> Void)? = nil
     var onForgotPassword: (() -> Void)? = nil
-
+    @State private var pendingWorkspace: AuthWorkspace?
+    @State private var workspace: AuthWorkspace?
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
     @State private var showSignUp = false
     @State private var isSubmitting = false
     @State private var errorMessage: String?
-
     var body: some View {
         ZStack {
             Brand.navy.ignoresSafeArea()
@@ -25,7 +22,6 @@ struct AuthView: View {
                 .offset(x: 130, y: -300)
                 .allowsHitTesting(false)
                 .accessibilityHidden(true)
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Welcome back")
@@ -39,15 +35,17 @@ struct AuthView: View {
                         Text("MCRI Connect").font(.title.bold())
                     }
                     .padding(.top, 22)
-
                     Text("Sign in")
                         .font(.system(size: 38, weight: .bold))
                         .padding(.top, 34)
                         .accessibilityAddTraits(.isHeader)
+                    if onSignUp == nil {
+                        Text("Preview only · Account service is not connected")
+                            .font(.caption).foregroundStyle(Brand.orange).padding(.top, 10)
+                    }
                     Text("Continue your internship journey.")
                         .foregroundStyle(Brand.mutedText)
                         .padding(.top, 4)
-
                     AuthFieldLabel(title: "Email address").padding(.top, 34)
                     TextField("you@example.com", text: $email)
                         .keyboardType(.emailAddress)
@@ -57,11 +55,9 @@ struct AuthView: View {
                         .accessibilityLabel("Email address")
                         .modifier(AuthFieldStyle())
                         .disabled(isSubmitting)
-
                     AuthFieldLabel(title: "Password").padding(.top, 22)
                     AuthPasswordField(password: $password, isVisible: $showPassword, isNew: false)
                         .disabled(isSubmitting)
-
                     Button("Forgot password?") {
                         if let onForgotPassword { onForgotPassword() }
                         else { errorMessage = "Password reset is not connected yet." }
@@ -70,11 +66,9 @@ struct AuthView: View {
                     .foregroundStyle(Brand.cyan)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
                     .disabled(isSubmitting)
-
                     if let errorMessage {
                         Text(errorMessage).font(.footnote).padding(.top, 12)
                     }
-
                     Button(action: signIn) {
                         HStack {
                             if isSubmitting { ProgressView().tint(.white) }
@@ -86,13 +80,11 @@ struct AuthView: View {
                     }
                     .disabled(isSubmitting)
                     .padding(.top, 24)
-
                     Text("Don’t have an account?")
                         .font(.subheadline)
                         .foregroundStyle(Brand.mutedText)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 28)
-
                     Button { showSignUp = true } label: {
                         Text("Create account")
                             .font(.headline)
@@ -104,60 +96,97 @@ struct AuthView: View {
                             }
                             .contentShape(RoundedRectangle(cornerRadius: 18))
                     }
+                    
                     .disabled(isSubmitting)
-                    .padding(.top, 14)
-
-                    Text("By continuing, you agree to our Terms and Privacy Policy.")
-                        .font(.caption)
-                        .foregroundStyle(Brand.mutedText)
-                        .frame(maxWidth: .infinity)
-                        .multilineTextAlignment(.center)
-                        .padding(.top, 34)
+                                .padding(.top, 14)
+                                Text("By continuing, you agree to our Terms and Privacy Policy.")
+                                    .font(.caption)
+                                    .foregroundStyle(Brand.mutedText)
+                                    .frame(maxWidth: .infinity)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.top, 34)
+                            }
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 28)
+                            .frame(maxWidth: 460)
+                            .frame(maxWidth: .infinity)
+                        }
+                        .scrollDismissesKeyboard(.interactively)
+                    }
+                    .foregroundStyle(.white)
+                    .buttonStyle(.plain)
+                    .preferredColorScheme(.dark)
+                    .sheet(isPresented: $showSignUp, onDismiss: openCreatedWorkspace) {
+                        AuthSignUpSheet(onSignUp: onSignUp) { fullName, role in
+                            pendingWorkspace = AuthWorkspace(fullName: fullName, role: role)
+                            showSignUp = false
+                        }
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
+                        .preferredColorScheme(.dark)
+                    }
+                    .fullScreenCover(item: $workspace) { account in
+                        destination(for: account)
+                    }
                 }
-                .padding(.horizontal, 24)
-                .padding(.vertical, 28)
-                .frame(maxWidth: 460)
-                .frame(maxWidth: .infinity)
+                private func openCreatedWorkspace() {
+                    guard let created = pendingWorkspace else { return }
+                    pendingWorkspace = nil
+                    workspace = created
+                }
+                @ViewBuilder
+                private func destination(for account: AuthWorkspace) -> some View {
+                    switch account.role {
+                    case .student:
+                        StudentDashboardView()
+                    case .employer:
+                        EmployerPipelineView()
+                    case .programManager:
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Program manager").font(.title2.bold())
+                            Text("Welcome, \(account.fullName)")
+                            Text("Your workspace is not available yet.")
+                            Button("Back") { workspace = nil }
+                            Spacer()
+                        }
+                        .padding(24)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .background(Brand.navy.ignoresSafeArea())
+                        .foregroundStyle(.white)
+                    }
+                }
+
+                private func signIn() {
+                    guard !isSubmitting else { return }
+                    errorMessage = nil
+                    let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                    guard isValidAuthEmail(address), !password.isEmpty else {
+                        errorMessage = "Enter a valid email address and your password."
+                        return
+                    }
+                    guard let onSignIn else {
+                        errorMessage = "Connect sign-in to your authentication service to continue."
+                        return
+                    }
+                    let submittedPassword = password
+                    isSubmitting = true
+                    Task { @MainActor in
+                        defer { isSubmitting = false }
+                        do {
+                            try await onSignIn(address, submittedPassword)
+                            password = ""
+                        } catch { errorMessage = error.localizedDescription }
+                    }
+                }
             }
-            .scrollDismissesKeyboard(.interactively)
-        }
-        .foregroundStyle(.white)
-        .buttonStyle(.plain)
-        .preferredColorScheme(.dark)
-        .sheet(isPresented: $showSignUp) {
-            AuthSignUpSheet(onSignUp: onSignUp)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .preferredColorScheme(.dark)
-        }
-    }
-
-    private func signIn() {
-        guard !isSubmitting else { return }
-        errorMessage = nil
-        let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard isValidAuthEmail(address), !password.isEmpty else {
-            errorMessage = "Enter a valid email address and your password."
-            return
-        }
-        guard let onSignIn else {
-            errorMessage = "Connect sign-in to your authentication service to continue."
-            return
-        }
-        let submittedPassword = password
-        isSubmitting = true
-        Task { @MainActor in
-            defer { isSubmitting = false }
-            do {
-                try await onSignIn(address, submittedPassword)
-                password = ""
-            } catch { errorMessage = error.localizedDescription }
-        }
-    }
-}
-
+            private struct AuthWorkspace: Identifiable {
+                let id = UUID()
+                let fullName: String
+                let role: UserRole
+            }
 private struct AuthSignUpSheet: View {
-    let onSignUp: ((String, String, String, UserRole) async throws -> Void)?
+    let onSignUp: (@MainActor (String, String, String, UserRole) async throws -> Void)?
+    let onCompleted: (String, UserRole) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var fullName = ""
     @State private var email = ""
@@ -166,7 +195,6 @@ private struct AuthSignUpSheet: View {
     @State private var role: UserRole = .student
     @State private var isSubmitting = false
     @State private var errorMessage: String?
-
     var body: some View {
         ZStack {
             Brand.navy.ignoresSafeArea()
@@ -183,10 +211,14 @@ private struct AuthSignUpSheet: View {
                         .accessibilityLabel("Close sign-up")
                         .disabled(isSubmitting)
                     }
+                    
+                    if onSignUp == nil {
+                        Text("Preview only · No real account will be created")
+                            .font(.caption).foregroundStyle(Brand.orange).padding(.top, 10)
+                    }
                     Text("Students, employers and programme managers each get their own workspace.")
                         .foregroundStyle(Brand.mutedText)
                         .padding(.top, 8)
-
                     AuthFieldLabel(title: "FULL NAME").padding(.top, 26)
                     TextField("Your full name", text: $fullName)
                         .textContentType(.name)
@@ -194,7 +226,6 @@ private struct AuthSignUpSheet: View {
                         .accessibilityLabel("Full name")
                         .modifier(AuthFieldStyle())
                         .disabled(isSubmitting)
-
                     AuthFieldLabel(title: "EMAIL ADDRESS").padding(.top, 20)
                     TextField("you@example.com", text: $email)
                         .keyboardType(.emailAddress)
@@ -204,18 +235,15 @@ private struct AuthSignUpSheet: View {
                         .accessibilityLabel("Email address")
                         .modifier(AuthFieldStyle())
                         .disabled(isSubmitting)
-
                     AuthFieldLabel(title: "PASSWORD").padding(.top, 20)
                     AuthPasswordField(password: $password, isVisible: $showPassword, isNew: true)
                         .disabled(isSubmitting)
-
                     AuthFieldLabel(title: "I AM JOINING AS").padding(.top, 20)
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: 8) { roleChoices }
                         VStack(alignment: .leading, spacing: 8) { roleChoices }
                     }
                     .disabled(isSubmitting)
-
                     if let errorMessage {
                         Text(errorMessage).font(.footnote).padding(.top, 16)
                     }
@@ -231,7 +259,6 @@ private struct AuthSignUpSheet: View {
                     }
                     .disabled(isSubmitting)
                     .padding(.top, 24)
-
                     Button { dismiss() } label: {
                         Text("Already registered? Log in →")
                             .foregroundStyle(Brand.cyan)
@@ -251,7 +278,6 @@ private struct AuthSignUpSheet: View {
         .buttonStyle(.plain)
         .interactiveDismissDisabled(isSubmitting)
     }
-
     private var roleChoices: some View {
         ForEach(UserRole.allCases) { option in
             Button { role = option } label: {
@@ -274,98 +300,93 @@ private struct AuthSignUpSheet: View {
             .accessibilityAddTraits(role == option ? .isSelected : [])
         }
     }
-
+    
     private func signUp() {
-        guard !isSubmitting else { return }
-        errorMessage = nil
-        let name = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else {
-            errorMessage = "Please enter your full name."
-            return
-        }
-        guard isValidAuthEmail(address) else {
-            errorMessage = "Please enter a valid email address."
-            return
-        }
-        guard password.count >= 6 else {
-            errorMessage = "Use a password with at least 6 characters."
-            return
-        }
-        guard let onSignUp else {
-            errorMessage = "Connect sign-up to your authentication service to continue."
-            return
-        }
-        let submittedRole = role
-        let submittedPassword = password
-        isSubmitting = true
-        Task { @MainActor in
-            defer { isSubmitting = false }
-            do {
-                // The service must also validate the password and authorize roles.
-                try await onSignUp(name, address, submittedPassword, submittedRole)
-                password = ""
-                dismiss()
-            } catch { errorMessage = error.localizedDescription }
-        }
-    }
-}
-
-private struct AuthFieldLabel: View {
-    let title: String
-    var body: some View {
-        Text(title)
-            .font(.subheadline.weight(.bold))
-            .foregroundStyle(.white)
-            .padding(.bottom, 8)
-    }
-}
-
-private struct AuthFieldStyle: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .textFieldStyle(.plain)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 18)
-            .frame(minHeight: 54)
-            .background(Brand.field, in: RoundedRectangle(cornerRadius: 16))
-    }
-}
-
-private struct AuthPasswordField: View {
-    @Binding var password: String
-    @Binding var isVisible: Bool
-    let isNew: Bool
-    var body: some View {
-        HStack {
-            Group {
-                if isVisible {
-                    TextField(isNew ? "At least 6 characters" : "Password", text: $password)
-                } else {
-                    SecureField(isNew ? "At least 6 characters" : "Password", text: $password)
-                }
+            guard !isSubmitting else { return }
+            errorMessage = nil
+            let name = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else {
+                errorMessage = "Please enter your full name."
+                return
             }
-            .textContentType(isNew ? .newPassword : .password)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .accessibilityLabel("Password")
-            Button(isVisible ? "Hide" : "Show") { isVisible.toggle() }
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(Brand.cyan)
-                .frame(minWidth: 44, minHeight: 44)
-                .accessibilityLabel(isVisible ? "Hide password" : "Show password")
+            guard isValidAuthEmail(address) else {
+                errorMessage = "Please enter a valid email address."
+                return
+            }
+            guard password.count >= 6 else {
+                errorMessage = "Use a password with at least 6 characters."
+                return
+            }
+            let submittedRole = role
+            let submittedPassword = password
+            isSubmitting = true
+            Task { @MainActor in
+                defer { isSubmitting = false }
+                do {
+                    if let onSignUp {
+                      
+                        try await onSignUp(name, address, submittedPassword, submittedRole)
+                        try Task.checkCancellation()
+                    }
+                    password = ""
+                    onCompleted(name, submittedRole)
+                } catch { errorMessage = error.localizedDescription }
+            }
         }
-        .modifier(AuthFieldStyle())
     }
-}
+    private struct AuthFieldLabel: View {
+        let title: String
+        var body: some View {
+            Text(title)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .padding(.bottom, 8)
+        }
+    }
+    private struct AuthFieldStyle: ViewModifier {
+        func body(content: Content) -> some View {
+            content
+                .textFieldStyle(.plain)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 18)
+                .frame(minHeight: 54)
+                .background(Brand.field, in: RoundedRectangle(cornerRadius: 16))
+        }
+    }
+    private struct AuthPasswordField: View {
+        @Binding var password: String
+        @Binding var isVisible: Bool
+        let isNew: Bool
+        var body: some View {
+            HStack {
+                Group {
+                    if isVisible {
+                        TextField(isNew ? "At least 6 characters" : "Password", text: $password)
+                    } else {
+                        SecureField(isNew ? "At least 6 characters" : "Password", text: $password)
+                    }
+                }
+                .textContentType(isNew ? .newPassword : .password)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .accessibilityLabel("Password")
+                Button(isVisible ? "Hide" : "Show") { isVisible.toggle() }
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Brand.cyan)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel(isVisible ? "Hide password" : "Show password")
+            }
+            .modifier(AuthFieldStyle())
+        }
+    }
+    private func isValidAuthEmail(_ address: String) -> Bool {
+        let parts = address.split(separator: "@", omittingEmptySubsequences: false)
+        return parts.count == 2 && !parts[0].isEmpty && parts[1].contains(".")
+            && !parts[1].hasPrefix(".") && !parts[1].hasSuffix(".")
+            && !address.contains(where: { $0.isWhitespace })
+    }
+    struct AuthView_Previews: PreviewProvider {
+        static var previews: some View { AuthView() }
+    }
 
-private func isValidAuthEmail(_ address: String) -> Bool {
-    let parts = address.split(separator: "@", omittingEmptySubsequences: false)
-    return parts.count == 2 && !parts[0].isEmpty && parts[1].contains(".")
-        && !parts[1].hasPrefix(".") && !parts[1].hasSuffix(".")
-        && !address.contains(where: { $0.isWhitespace })
-}
-
-struct AuthView_Previews: PreviewProvider {
-    static var previews: some View { AuthView() }
-}

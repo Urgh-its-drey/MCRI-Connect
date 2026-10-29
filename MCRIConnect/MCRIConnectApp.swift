@@ -11,7 +11,7 @@ import SwiftUI
 struct MCRIConnectApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+           WelcomePage()
         }
     }
 }

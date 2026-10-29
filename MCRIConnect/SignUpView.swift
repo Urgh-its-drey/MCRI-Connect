@@ -148,7 +148,7 @@ struct SignUpView: View {
     private func createAccount() {
         guard hasAcceptedTerms else { return }
 
-        // Connect your authentication service here.
+
     }
 }
 

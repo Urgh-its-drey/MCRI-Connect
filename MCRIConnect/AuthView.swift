@@ -1,104 +1,91 @@
 import SwiftUI
 
+// Replace your existing AuthView.swift with this file.
+// Uses your existing Brand and UserRole definitions; do not redefine them here.
+// Requires iOS 16 or later.
 struct AuthView: View {
+    var onSignIn: ((String, String) async throws -> Void)? = nil
+    // Arguments: full name, email, password, role.
+    var onSignUp: ((String, String, String, UserRole) async throws -> Void)? = nil
+    var onForgotPassword: (() -> Void)? = nil
+
     @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
+    @State private var showSignUp = false
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
 
     var body: some View {
         ZStack {
             Brand.navy.ignoresSafeArea()
-
             Circle()
                 .fill(.white.opacity(0.05))
                 .frame(width: 300, height: 300)
                 .offset(x: 130, y: -300)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Welcome back")
                         .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.white)
-
                     HStack(spacing: 12) {
                         Text("M")
                             .font(.title.bold())
-                            .foregroundStyle(.white)
                             .frame(width: 54, height: 54)
                             .background(Brand.orange, in: RoundedRectangle(cornerRadius: 16))
-
-                        Text("MCRI Connect")
-                            .font(.title.bold())
-                            .foregroundStyle(.white)
+                            .accessibilityHidden(true)
+                        Text("MCRI Connect").font(.title.bold())
                     }
                     .padding(.top, 22)
 
                     Text("Sign in")
                         .font(.system(size: 38, weight: .bold))
-                        .foregroundStyle(.white)
                         .padding(.top, 34)
-
+                        .accessibilityAddTraits(.isHeader)
                     Text("Continue your internship journey.")
-                        .font(.body)
                         .foregroundStyle(Brand.mutedText)
                         .padding(.top, 4)
 
-                    fieldLabel("Email address")
-                        .padding(.top, 34)
-
+                    AuthFieldLabel(title: "Email address").padding(.top, 34)
                     TextField("you@example.com", text: $email)
                         .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                        .textFieldStyle(.plain)
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 18)
-                        .frame(height: 54)
-                        .background(Brand.field, in: RoundedRectangle(cornerRadius: 16))
+                        .accessibilityLabel("Email address")
+                        .modifier(AuthFieldStyle())
+                        .disabled(isSubmitting)
 
-                    fieldLabel("Password")
-                        .padding(.top, 22)
-
-                    HStack {
-                        Group {
-                            if showPassword {
-                                TextField("Password", text: $password)
-                            } else {
-                                SecureField("Password", text: $password)
-                            }
-                        }
-                        .foregroundStyle(.white)
-
-                        Button(showPassword ? "Hide" : "Show") {
-                            showPassword.toggle()
-                        }
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Brand.cyan)
-                    }
-                    .padding(.horizontal, 18)
-                    .frame(height: 54)
-                    .background(Brand.field, in: RoundedRectangle(cornerRadius: 16))
+                    AuthFieldLabel(title: "Password").padding(.top, 22)
+                    AuthPasswordField(password: $password, isVisible: $showPassword, isNew: false)
+                        .disabled(isSubmitting)
 
                     Button("Forgot password?") {
-                        print("Forgot password tapped")
+                        if let onForgotPassword { onForgotPassword() }
+                        else { errorMessage = "Password reset is not connected yet." }
                     }
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Brand.cyan)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.top, 12)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .trailing)
+                    .disabled(isSubmitting)
 
-                    Button {
-                        print("Sign in tapped")
-                    } label: {
-                        Text("Sign in")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .foregroundStyle(.white)
-                            .background(Brand.orange, in: RoundedRectangle(cornerRadius: 18))
+                    if let errorMessage {
+                        Text(errorMessage).font(.footnote).padding(.top, 12)
                     }
-                    .buttonStyle(PressableStyle())
-                    .padding(.top, 32)
+
+                    Button(action: signIn) {
+                        HStack {
+                            if isSubmitting { ProgressView().tint(.white) }
+                            Text(isSubmitting ? "Signing in…" : "Sign in")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                        .background(Brand.orange, in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .disabled(isSubmitting)
+                    .padding(.top, 24)
 
                     Text("Don’t have an account?")
                         .font(.subheadline)
@@ -106,19 +93,18 @@ struct AuthView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.top, 28)
 
-                    Button {
-                        print("Create account tapped")
-                    } label: {
+                    Button { showSignUp = true } label: {
                         Text("Create account")
                             .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
+                            .frame(maxWidth: .infinity, minHeight: 52)
                             .foregroundStyle(Brand.cyan)
                             .overlay {
                                 RoundedRectangle(cornerRadius: 18)
-                                    .stroke(Brand.cyan, lineWidth: 2)
+                                    .strokeBorder(Brand.cyan, lineWidth: 2)
                             }
+                            .contentShape(RoundedRectangle(cornerRadius: 18))
                     }
+                    .disabled(isSubmitting)
                     .padding(.top, 14)
 
                     Text("By continuing, you agree to our Terms and Privacy Policy.")
@@ -129,21 +115,257 @@ struct AuthView: View {
                         .padding(.top, 34)
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 28)
-                .padding(.bottom, 28)
+                .padding(.vertical, 28)
                 .frame(maxWidth: 460)
+                .frame(maxWidth: .infinity)
             }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .foregroundStyle(.white)
+        .buttonStyle(.plain)
+        .preferredColorScheme(.dark)
+        .sheet(isPresented: $showSignUp) {
+            AuthSignUpSheet(onSignUp: onSignUp)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .preferredColorScheme(.dark)
         }
     }
 
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
+    private func signIn() {
+        guard !isSubmitting else { return }
+        errorMessage = nil
+        let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard isValidAuthEmail(address), !password.isEmpty else {
+            errorMessage = "Enter a valid email address and your password."
+            return
+        }
+        guard let onSignIn else {
+            errorMessage = "Connect sign-in to your authentication service to continue."
+            return
+        }
+        let submittedPassword = password
+        isSubmitting = true
+        Task { @MainActor in
+            defer { isSubmitting = false }
+            do {
+                try await onSignIn(address, submittedPassword)
+                password = ""
+            } catch { errorMessage = error.localizedDescription }
+        }
+    }
+}
+
+private struct AuthSignUpSheet: View {
+    let onSignUp: ((String, String, String, UserRole) async throws -> Void)?
+    @Environment(\.dismiss) private var dismiss
+    @State private var fullName = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var showPassword = false
+    @State private var role: UserRole = .student
+    @State private var isSubmitting = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        ZStack {
+            Brand.navy.ignoresSafeArea()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(alignment: .top) {
+                        Text("Create account")
+                            .font(.system(size: 30, weight: .bold))
+                            .accessibilityAddTraits(.isHeader)
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark").frame(width: 44, height: 44)
+                        }
+                        .accessibilityLabel("Close sign-up")
+                        .disabled(isSubmitting)
+                    }
+                    Text("Students, employers and programme managers each get their own workspace.")
+                        .foregroundStyle(Brand.mutedText)
+                        .padding(.top, 8)
+
+                    AuthFieldLabel(title: "FULL NAME").padding(.top, 26)
+                    TextField("Your full name", text: $fullName)
+                        .textContentType(.name)
+                        .textInputAutocapitalization(.words)
+                        .accessibilityLabel("Full name")
+                        .modifier(AuthFieldStyle())
+                        .disabled(isSubmitting)
+
+                    AuthFieldLabel(title: "EMAIL ADDRESS").padding(.top, 20)
+                    TextField("you@example.com", text: $email)
+                        .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .accessibilityLabel("Email address")
+                        .modifier(AuthFieldStyle())
+                        .disabled(isSubmitting)
+
+                    AuthFieldLabel(title: "PASSWORD").padding(.top, 20)
+                    AuthPasswordField(password: $password, isVisible: $showPassword, isNew: true)
+                        .disabled(isSubmitting)
+
+                    AuthFieldLabel(title: "I AM JOINING AS").padding(.top, 20)
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) { roleChoices }
+                        VStack(alignment: .leading, spacing: 8) { roleChoices }
+                    }
+                    .disabled(isSubmitting)
+
+                    if let errorMessage {
+                        Text(errorMessage).font(.footnote).padding(.top, 16)
+                    }
+                    Button(action: signUp) {
+                        HStack {
+                            if isSubmitting { ProgressView().tint(.white) }
+                            else { Image(systemName: "arrow.right") }
+                            Text(isSubmitting ? "Creating account…" : "Create account")
+                        }
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                        .background(Brand.orange, in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .disabled(isSubmitting)
+                    .padding(.top, 24)
+
+                    Button { dismiss() } label: {
+                        Text("Already registered? Log in →")
+                            .foregroundStyle(Brand.cyan)
+                            .frame(minHeight: 44)
+                    }
+                    .disabled(isSubmitting)
+                    .padding(.top, 18)
+                }
+                .padding(24)
+                .padding(.top, 12)
+                .frame(maxWidth: 460)
+                .frame(maxWidth: .infinity)
+            }
+            .scrollDismissesKeyboard(.interactively)
+        }
+        .foregroundStyle(.white)
+        .buttonStyle(.plain)
+        .interactiveDismissDisabled(isSubmitting)
+    }
+
+    private var roleChoices: some View {
+        ForEach(UserRole.allCases) { option in
+            Button { role = option } label: {
+                HStack(spacing: 5) {
+                    Image(systemName: role == option ? "checkmark" : "plus")
+                    Text(option == .programManager ? "Manager" : option.rawValue)
+                }
+                .font(.subheadline.weight(.semibold))
+                .fixedSize(horizontal: true, vertical: false)
+                .foregroundStyle(role == option ? Brand.navy : Brand.cyan)
+                .padding(.horizontal, 13)
+                .frame(minHeight: 44)
+                .background(role == option ? Brand.orange : Brand.field, in: Capsule())
+                .overlay {
+                    Capsule().strokeBorder(role == option ? Brand.orange : Brand.cyan, lineWidth: 1)
+                }
+                .contentShape(Capsule())
+            }
+            .accessibilityLabel(option.rawValue)
+            .accessibilityAddTraits(role == option ? .isSelected : [])
+        }
+    }
+
+    private func signUp() {
+        guard !isSubmitting else { return }
+        errorMessage = nil
+        let name = fullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let address = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else {
+            errorMessage = "Please enter your full name."
+            return
+        }
+        guard isValidAuthEmail(address) else {
+            errorMessage = "Please enter a valid email address."
+            return
+        }
+        guard password.count >= 6 else {
+            errorMessage = "Use a password with at least 6 characters."
+            return
+        }
+        guard let onSignUp else {
+            errorMessage = "Connect sign-up to your authentication service to continue."
+            return
+        }
+        let submittedRole = role
+        let submittedPassword = password
+        isSubmitting = true
+        Task { @MainActor in
+            defer { isSubmitting = false }
+            do {
+                // The service must also validate the password and authorize roles.
+                try await onSignUp(name, address, submittedPassword, submittedRole)
+                password = ""
+                dismiss()
+            } catch { errorMessage = error.localizedDescription }
+        }
+    }
+}
+
+private struct AuthFieldLabel: View {
+    let title: String
+    var body: some View {
+        Text(title)
             .font(.subheadline.weight(.bold))
             .foregroundStyle(.white)
             .padding(.bottom, 8)
     }
 }
 
-#Preview {
-    AuthView()
+private struct AuthFieldStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .textFieldStyle(.plain)
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18)
+            .frame(minHeight: 54)
+            .background(Brand.field, in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+private struct AuthPasswordField: View {
+    @Binding var password: String
+    @Binding var isVisible: Bool
+    let isNew: Bool
+    var body: some View {
+        HStack {
+            Group {
+                if isVisible {
+                    TextField(isNew ? "At least 6 characters" : "Password", text: $password)
+                } else {
+                    SecureField(isNew ? "At least 6 characters" : "Password", text: $password)
+                }
+            }
+            .textContentType(isNew ? .newPassword : .password)
+            .textInputAutocapitalization(.never)
+            .autocorrectionDisabled()
+            .accessibilityLabel("Password")
+            Button(isVisible ? "Hide" : "Show") { isVisible.toggle() }
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Brand.cyan)
+                .frame(minWidth: 44, minHeight: 44)
+                .accessibilityLabel(isVisible ? "Hide password" : "Show password")
+        }
+        .modifier(AuthFieldStyle())
+    }
+}
+
+private func isValidAuthEmail(_ address: String) -> Bool {
+    let parts = address.split(separator: "@", omittingEmptySubsequences: false)
+    return parts.count == 2 && !parts[0].isEmpty && parts[1].contains(".")
+        && !parts[1].hasPrefix(".") && !parts[1].hasSuffix(".")
+        && !address.contains(where: { $0.isWhitespace })
+}
+
+struct AuthView_Previews: PreviewProvider {
+    static var previews: some View { AuthView() }
 }

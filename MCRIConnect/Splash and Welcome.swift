@@ -56,6 +56,7 @@ private struct TBSplashView: View {
             }
         }
     }
+    
     private var brand: some View {
         VStack(spacing: 17) {
             ZStack {

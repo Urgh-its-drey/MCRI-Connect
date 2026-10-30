@@ -86,60 +86,70 @@ struct ManagerStudentsView: View {
 
         return MCRICard(edge: band == .readyToApply ? .blue : (band == .notStarted ? .red : .none)) {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
-                HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: student.initials, size: 44)
+                Button {
+                    router.go(.student(student.id))
+                } label: {
+                    VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
+                        HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
+                            MCRILogoTile(initials: student.initials, size: 44,
+                                   imageURL: mcriAvatarURL(student.avatarPath), isCircle: true)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(student.fullName)
-                            .font(.mcriCardTitle)
-                            .foregroundStyle(MCRITheme.textPrimary)
-                        Text("\(student.programme) · \(student.year) · \(student.city)")
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(student.fullName)
+                                    .font(.mcriCardTitle)
+                                    .foregroundStyle(MCRITheme.textPrimary)
+                                Text("\(student.programme) · \(student.year) · \(student.city)")
+                                    .font(.mcriFootnote)
+                                    .foregroundStyle(MCRITheme.textSecondary)
+                                    .lineLimit(1)
+                            }
+
+                            Spacer(minLength: MCRITheme.Spacing.s2)
+
+                            VStack(alignment: .trailing, spacing: 4) {
+                                MCRIStrengthRing(value: student.profileStrength, caption: "fit", size: 44)
+                                if let placement {
+                                    MCRIStatusBadge(placement.stage.label, symbol: placement.stage.symbol,
+                                                    tone: placement.stage.tone)
+                                }
+                            }
+                        }
+
+                        Text(viewModel.gapSummary(for: student))
                             .font(.mcriFootnote)
-                            .foregroundStyle(MCRITheme.textSecondary)
-                            .lineLimit(1)
-                    }
+                            .foregroundStyle(student.missingSections.isEmpty
+                                             ? MCRITheme.positive : MCRITheme.primaryAction)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                    Spacer(minLength: MCRITheme.Spacing.s2)
+                        FlowingChips {
+                            ForEach(student.skillNames.prefix(4), id: \.self) { skill in
+                                MCRISkillChip(name: skill)
+                            }
+                        }
 
-                    VStack(alignment: .trailing, spacing: 4) {
-                        MCRIStrengthRing(value: student.profileStrength, caption: "fit", size: 44)
-                        if let placement {
-                            MCRIStatusBadge(placement.stage.label, symbol: placement.stage.symbol,
-                                            tone: placement.stage.tone)
+                        HStack(spacing: MCRITheme.Spacing.s2) {
+                            Text("Advisor · \(student.advisor ?? "Unassigned")")
+                                .font(.mcriCaption2)
+                                .foregroundStyle(MCRITheme.textTertiary)
+                                .lineLimit(1)
+                            Spacer(minLength: MCRITheme.Spacing.s2)
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(MCRITheme.border)
                         }
                     }
+                    .contentShape(Rectangle())
                 }
+                .buttonStyle(.plain)
 
-                Text(viewModel.gapSummary(for: student))
-                    .font(.mcriFootnote)
-                    .foregroundStyle(student.missingSections.isEmpty
-                                     ? MCRITheme.positive : MCRITheme.primaryAction)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                FlowingChips {
-                    ForEach(student.skillNames.prefix(4), id: \.self) { skill in
-                        MCRISkillChip(name: skill)
-                    }
-                }
-
-                HStack(spacing: MCRITheme.Spacing.s2) {
-                    Text("Advisor · \(student.advisor ?? "Unassigned")")
-                        .font(.mcriCaption2)
-                        .foregroundStyle(MCRITheme.textTertiary)
-                        .lineLimit(1)
-                    Spacer(minLength: MCRITheme.Spacing.s2)
-                }
+                Rectangle().fill(MCRITheme.divider).frame(height: 1)
 
                 HStack(spacing: MCRITheme.Spacing.s2) {
                     Spacer(minLength: 0)
                     MCRISecondaryButton(title: "Message", symbol: "bubble.left",
                                         fullWidth: false, compact: true) {
-                        if let placement {
-                            router.go(.thread(viewModel.message(placement, from: auth.session.displayName)))
-                        }
+                        viewModel.message(student, from: auth.session.displayName)
                     }
-                    .disabled(placement == nil)
-                    .opacity(placement == nil ? 0.45 : 1)
 
                     MCRIButton(title: "Next stage", symbol: "arrow.right",
                                fullWidth: false, isDisabled: placement == nil

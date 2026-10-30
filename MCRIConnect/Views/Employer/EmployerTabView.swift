@@ -1,20 +1,15 @@
 import SwiftUI
 
-/// The employer workspace: Dashboard, Internships, Candidates, Messages, Company.
+/// The employer workspace: Dashboard, Roles, Candidates, Messages, Company.
 struct EmployerTabView: View {
     @EnvironmentObject private var store: AppStore
     @StateObject private var router = Router()
 
     private var items: [MCRITabBar.Item] {
-        [
-            MCRITabBar.Item(title: "Dashboard", symbol: "square.grid.2x2.fill"),
-            MCRITabBar.Item(title: "Internships", symbol: "briefcase.fill"),
-            MCRITabBar.Item(title: "Candidates", symbol: "person.2.fill",
-                            badge: store.employerCandidates.filter { $0.status == .submitted }.count),
-            MCRITabBar.Item(title: "Messages", symbol: "bubble.left.fill",
-                            badge: store.unreadMessages),
-            MCRITabBar.Item(title: "Company", symbol: "building.2.fill"),
-        ]
+        MCRIPreview.tabs(for: .employer, badges: [
+            2: store.employerCandidates.filter { $0.status == .submitted }.count,
+            3: store.unreadMessages,
+        ])
     }
 
     var body: some View {
@@ -29,6 +24,7 @@ struct EmployerTabView: View {
                 }
             }
             .mcriDestinations()
+            .mcriFollowThreadTargets(router, role: .employer)
         }
         .environmentObject(router)
     }
@@ -36,6 +32,6 @@ struct EmployerTabView: View {
 
 private struct EmployerTabViewPreview1: PreviewProvider {
     static var previews: some View {
-    MCRIPreviewScreen(signedInAs: .employer, inNavigationStack: false) { EmployerTabView() }
-}
+        MCRIPreviewScreen(signedInAs: .employer, inNavigationStack: false) { EmployerTabView() }
+    }
 }

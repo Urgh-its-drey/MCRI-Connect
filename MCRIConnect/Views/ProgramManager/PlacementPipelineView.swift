@@ -112,7 +112,8 @@ struct PlacementPipelineView: View {
         return MCRICard(edge: placement.readiness < 60 ? .red : (stage == .placed ? .blue : .none)) {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
                 HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: placement.initials, size: 42)
+                    MCRILogoTile(initials: placement.initials, size: 42,
+                           imageURL: mcriAvatarURL(placement.avatarPath), isCircle: true)
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(placement.studentName)
@@ -178,7 +179,7 @@ struct PlacementPipelineView: View {
 
                     MCRISecondaryButton(title: "Message", symbol: "bubble.left",
                                         fullWidth: false, compact: true) {
-                        router.go(.thread(viewModel.message(placement, from: auth.session.displayName)))
+                        viewModel.message(placement, from: auth.session.displayName)
                     }
 
                     if let next {

@@ -2,9 +2,9 @@ import Foundation
 
 enum ApplicationStage: String, Codable, CaseIterable, Identifiable {
     case submitted
-    case underReview
+    case underReview = "under_review"
     case shortlisted
-    case interviewScheduled
+    case interviewScheduled = "interview_scheduled"
     case offered
     case declined
 

@@ -1,24 +1,65 @@
 import Foundation
 
+/// Where a posted role is in its own life cycle. `open` is all students ever see.
+enum RoleStatus: String, Codable, CaseIterable, Identifiable {
+    case open
+    case paused
+    case closed
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .open: return "Open"
+        case .paused: return "Paused"
+        case .closed: return "Closed"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .open: return "paperplane.fill"
+        case .paused: return "pause.circle.fill"
+        case .closed: return "checkmark.seal.fill"
+        }
+    }
+}
+
+/// A hiring company. Employers in this app are organisations, never individual people —
+/// a role is posted against a company and one or more accounts manage it.
 struct Company: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
     var initials: String
+    var logoPath: String?
+    var tagline: String?
+    var website: String?
+    var location: String?
+    var registrationNumber: String?
     var teamLabel: String
     var openRoles: Int
     var isVerified: Bool
     var hiredLastCycle: Int
 
-    init(id: UUID = UUID(), name: String, initials: String, teamLabel: String,
-         openRoles: Int, isVerified: Bool = true, hiredLastCycle: Int = 0) {
+    init(id: UUID = UUID(), name: String, initials: String, logoPath: String? = nil,
+         tagline: String? = nil, website: String? = nil, location: String? = nil,
+         registrationNumber: String? = nil, teamLabel: String,
+         openRoles: Int, isVerified: Bool = false, hiredLastCycle: Int = 0) {
         self.id = id
         self.name = name
         self.initials = initials
+        self.logoPath = logoPath
+        self.tagline = tagline
+        self.website = website
+        self.location = location
+        self.registrationNumber = registrationNumber
         self.teamLabel = teamLabel
         self.openRoles = openRoles
         self.isVerified = isVerified
         self.hiredLastCycle = hiredLastCycle
     }
+
+    var verificationLabel: String { isVerified ? "Verified" : "Pending review" }
 }
 
 struct Internship: Identifiable, Codable, Hashable {
@@ -27,12 +68,15 @@ struct Internship: Identifiable, Codable, Hashable {
     var companyID: UUID
     var companyName: String
     var companyInitials: String
+    var companyLogoPath: String?
+    var companyIsVerified: Bool
     var location: String
     var workMode: WorkMode
     var durationWeeks: Int
     var compensation: String
     var isPaid: Bool
     var easyApply: Bool
+    var status: RoleStatus
     var postedDate: Date
     var closingDate: Date
     var description: String
@@ -45,8 +89,10 @@ struct Internship: Identifiable, Codable, Hashable {
     var category: SkillCategory
 
     init(id: UUID = UUID(), title: String, companyID: UUID, companyName: String,
-         companyInitials: String, location: String, workMode: WorkMode, durationWeeks: Int,
-         compensation: String, isPaid: Bool, easyApply: Bool, postedDate: Date, closingDate: Date,
+         companyInitials: String, companyLogoPath: String? = nil, companyIsVerified: Bool = true,
+         location: String, workMode: WorkMode, durationWeeks: Int,
+         compensation: String, isPaid: Bool, easyApply: Bool, status: RoleStatus = .open,
+         postedDate: Date, closingDate: Date,
          description: String, responsibilities: [String], requiredSkills: [String],
          preferredSkills: [String] = [], careerInterests: [String] = [], applicants: Int = 0,
          teamSize: Int = 0, category: SkillCategory) {
@@ -55,12 +101,15 @@ struct Internship: Identifiable, Codable, Hashable {
         self.companyID = companyID
         self.companyName = companyName
         self.companyInitials = companyInitials
+        self.companyLogoPath = companyLogoPath
+        self.companyIsVerified = companyIsVerified
         self.location = location
         self.workMode = workMode
         self.durationWeeks = durationWeeks
         self.compensation = compensation
         self.isPaid = isPaid
         self.easyApply = easyApply
+        self.status = status
         self.postedDate = postedDate
         self.closingDate = closingDate
         self.description = description
@@ -87,6 +136,9 @@ struct Internship: Identifiable, Codable, Hashable {
     }
 
     var isClosingSoon: Bool { daysUntilDeadline > 0 && daysUntilDeadline <= 5 }
+
+    /// Past its closing date, or deliberately shut by the hiring company.
+    var isClosed: Bool { status != .open || daysUntilDeadline <= 0 }
 }
 
 struct SavedSearch: Identifiable, Codable, Hashable {

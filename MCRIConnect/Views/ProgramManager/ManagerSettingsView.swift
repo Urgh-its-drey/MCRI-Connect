@@ -1,10 +1,11 @@
 import SwiftUI
 
-/// Manager-side controls: what the office gets told about, which workspace this
-/// device is in, and where the data actually comes from.
+/// Manager-side controls: what the office gets told about, which records this
+/// workspace can see, and the account itself.
 struct ManagerSettingsView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var router: Router
     @StateObject private var viewModel = ManagerViewModel()
 
     @AppStorage("mcri.notify.deadlines") private var notifyDeadlines = true
@@ -22,8 +23,8 @@ struct ManagerSettingsView: View {
             MCRISectionHeader(title: "Data")
             dataCard
 
-            MCRISectionHeader(title: "Workspace")
-            workspaceCard
+            MCRISectionHeader(title: "Account")
+            accountCard
 
             MCRISecondaryButton(title: "Sign out", symbol: "rectangle.portrait.and.arrow.right",
                                 isDestructive: true) {
@@ -37,7 +38,8 @@ struct ManagerSettingsView: View {
     private var identityCard: some View {
         MCRIScreenHero {
             HStack(spacing: MCRITheme.Spacing.s3) {
-                MCRILogoTile(initials: auth.session.initials.isEmpty ? "PM" : auth.session.initials, size: 50)
+                MCRILogoTile(initials: auth.session.initials.isEmpty ? "PM" : auth.session.initials, size: 50,
+                       imageURL: mcriAvatarURL(auth.session.avatarPath), isCircle: true)
                 VStack(alignment: .leading, spacing: 3) {
                     Text(auth.session.displayName)
                         .font(.mcriTitle)
@@ -50,6 +52,15 @@ struct ManagerSettingsView: View {
                         .foregroundStyle(MCRITheme.textTertiary)
                 }
                 Spacer(minLength: 0)
+            }
+
+            MCRIAvatarPicker(title: "Your photo",
+                            initials: auth.session.initials.isEmpty ? "PM" : auth.session.initials,
+                            bucket: .avatars,
+                            currentPath: auth.session.avatarPath,
+                            maxExtent: 384,
+                            isCircle: true) { data, extent in
+                store.setAvatarPhoto(data, extent: extent)
             }
         }
     }
@@ -91,10 +102,11 @@ struct ManagerSettingsView: View {
     private var dataCard: some View {
         MCRICard {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
-                infoRow(symbol: "database.fill", title: "Source",
-                        detail: "Local sample store — swap DataService for the Supabase client")
+                infoRow(symbol: "lock.shield.fill", title: "Access",
+                        detail: "Row Level Security on the server decides which rows this workspace may read.")
                 infoRow(symbol: "arrow.triangle.2.circlepath", title: "Last sync",
-                        detail: Date().formatted(date: .abbreviated, time: .shortened))
+                        detail: store.lastSyncedAt?.formatted(date: .abbreviated, time: .shortened)
+                              ?? "Not synced yet")
                 infoRow(symbol: "person.crop.circle.badge.checkmark", title: "Records",
                         detail: "\(store.students.count) students · \(store.internships.count) roles · \(store.placements.count) placements")
             }
@@ -121,33 +133,13 @@ struct ManagerSettingsView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var workspaceCard: some View {
+    private var accountCard: some View {
         MCRICard {
-            VStack(alignment: .leading, spacing: MCRITheme.Spacing.s2) {
-                MCRISectionHeader(title: "Open as another role",
-                                  subtitle: "The same data, seen from the other side")
-                ForEach(UserRole.allCases.filter { $0 != auth.session.role }) { role in
-                    Button {
-                        auth.switchRole(role)
-                    } label: {
-                        HStack(spacing: MCRITheme.Spacing.s3) {
-                            Image(systemName: role.glyph)
-                                .font(.system(size: 15, weight: .semibold))
-                                .foregroundStyle(MCRITheme.textSecondary)
-                                .frame(width: 24)
-                            Text(role.title)
-                                .font(.mcriCaption.weight(.semibold))
-                                .foregroundStyle(MCRITheme.textPrimary)
-                            Spacer()
-                            Image(systemName: "arrow.right")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(MCRITheme.border)
-                        }
-                        .frame(minHeight: MCRITheme.Metrics.minTapTarget)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Open as \(role.title)")
+            VStack(spacing: 0) {
+                MCRIAccountRow(symbol: "person.badge.key.fill",
+                               title: "Account & security",
+                               detail: auth.session.email ?? "Signed in") {
+                    router.go(.account)
                 }
             }
         }

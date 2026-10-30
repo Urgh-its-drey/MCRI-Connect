@@ -30,6 +30,17 @@ struct Certificate: Identifiable, Codable, Hashable {
     }
 }
 
+enum NameParts {
+    /// Two-letter monogram from the first two words of a name, matching the `initials`
+    /// expression the read views compute in SQL.
+    static func initials(_ fullName: String) -> String {
+        let words = fullName.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: " ")
+        let letters = words.prefix(2).compactMap { $0.first }
+        let built = String(letters).uppercased()
+        return built.isEmpty ? "?" : built
+    }
+}
+
 enum ReadinessBand: String, Codable, CaseIterable, Identifiable {
     case readyToApply
     case nearlyReady
@@ -74,12 +85,13 @@ struct Student: Identifiable, Codable, Hashable {
     var cvFileName: String?
     var profileStrength: Int
     var advisor: String?
+    var avatarPath: String?
 
     init(id: UUID = UUID(), fullName: String, initials: String, programme: String, year: String,
          city: String, workMode: WorkMode, availability: Availability, bio: String,
          skills: [StudentSkill], interests: [String], projects: [Project] = [],
          certificates: [Certificate] = [], cvFileName: String? = nil,
-         profileStrength: Int, advisor: String? = nil) {
+         profileStrength: Int, advisor: String? = nil, avatarPath: String? = nil) {
         self.id = id
         self.fullName = fullName
         self.initials = initials
@@ -96,12 +108,12 @@ struct Student: Identifiable, Codable, Hashable {
         self.cvFileName = cvFileName
         self.profileStrength = profileStrength
         self.advisor = advisor
+        self.avatarPath = avatarPath
     }
 
     var firstName: String { fullName.split(separator: " ").first.map(String.init) ?? fullName }
 
     var skillNames: [String] { skills.map(\.name) }
-
     var readiness: ReadinessBand { ReadinessBand.band(for: profileStrength) }
 
     /// Sections still missing content, used by the profile-completion checklist.

@@ -28,6 +28,9 @@ final class ManagerViewModel: ObservableObject {
     @Published var stageFilter: PlacementStage?
     @Published var bandFilter: ReadinessBand?
     @Published var advisorFilter: String?
+    @Published var companyQuery = ""
+    /// nil shows every company, true only verified, false only those awaiting review.
+    @Published var verificationFilter: Bool?
 
     // MARK: Cohort reads
 
@@ -143,9 +146,81 @@ final class ManagerViewModel: ObservableObject {
         store.move(placement, to: next)
     }
 
-    func message(_ placement: Placement, from senderName: String) -> UUID {
-        guard let student = student(placement) else { return UUID() }
-        return store.openThread(with: student, from: senderName).id
+    func message(_ placement: Placement, from senderName: String) {
+        guard let student = student(placement) else { return }
+        store.openThread(with: student, from: senderName)
+    }
+
+    /// Messaging straight from the cohort list or a student's own record.
+    func message(_ student: Student, from senderName: String) {
+        store.openThread(with: student, from: senderName)
+    }
+
+    // MARK: Employers
+
+    /// Every company on the programme, verified first. RLS gives a manager the whole table.
+    var companies: [Company] {
+        store.companies.sorted {
+            if $0.isVerified != $1.isVerified { return $0.isVerified }
+            return $0.name < $1.name
+        }
+    }
+
+    var pendingCompanies: [Company] { store.companies.filter { !$0.isVerified } }
+    var verifiedCompanies: [Company] { store.companies.filter { $0.isVerified } }
+
+    /// Roles currently open to students across every verified company.
+    var liveRoles: [Internship] { store.publishedRoles }
+
+    func setVerified(_ company: Company, verified: Bool) {
+        store.setVerified(company, verified: verified)
+    }
+
+    func roles(of company: Company) -> [Internship] {
+        store.internships.filter { $0.companyID == company.id }
+    }
+
+    func openRoles(of company: Company) -> [Internship] {
+        roles(of: company).filter { !$0.isClosed }
+    }
+
+    /// The employers list, searched and sliced by verification state.
+    var visibleCompanies: [Company] {
+        let needle = companyQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return companies.filter { company in
+            if let verificationFilter, company.isVerified != verificationFilter { return false }
+            guard !needle.isEmpty else { return true }
+            return company.name.lowercased().contains(needle)
+                || (company.location ?? "").lowercased().contains(needle)
+                || roles(of: company).contains { $0.title.lowercased().contains(needle) }
+        }
+    }
+
+    var hasCompanyFilters: Bool { verificationFilter != nil || !companyQuery.isEmpty }
+
+    func clearCompanyFilters() {
+        verificationFilter = nil
+        companyQuery = ""
+    }
+
+    /// Students placed at this company, matched through the role they were placed into.
+    func placedStudents(of company: Company) -> [Placement] {
+        let titles = Set(roles(of: company).map(\.title))
+        return store.placements.filter { placement in
+            placement.stage == .placed && titles.contains(placement.internshipTitle ?? "")
+        }
+    }
+
+    /// The single number a manager needs on an employer row: how much of the company's
+    /// pipeline is waiting on them.
+    func awaitingReview(of company: Company) -> Int {
+        let roleIDs = Set(roles(of: company).map(\.id))
+        return store.applications.filter { roleIDs.contains($0.internshipID) && $0.stage == .submitted }.count
+    }
+
+    func applications(of company: Company) -> Int {
+        let roleIDs = Set(roles(of: company).map(\.id))
+        return store.applications.filter { roleIDs.contains($0.internshipID) }.count
     }
 
     func nudge(_ alert: ReportAlert) {

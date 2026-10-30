@@ -87,7 +87,7 @@ struct StudentSkill: Identifiable, Codable, Hashable {
 enum WorkMode: String, Codable, CaseIterable, Identifiable {
     case remote
     case hybrid
-    case onSite
+    case onSite = "on_site"
 
     var id: String { rawValue }
 

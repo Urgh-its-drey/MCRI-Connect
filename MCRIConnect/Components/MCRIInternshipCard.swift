@@ -1,24 +1,53 @@
 import SwiftUI
 
-/// Company monogram tile: every employer mark in the app is drawn the same way.
+/// Identity tile: a photo or logo when the account has uploaded one, the monogram otherwise.
+/// The monogram always renders underneath, so a slow or missing image never leaves a blank.
 struct MCRILogoTile: View {
     var initials: String
     var size: CGFloat = 44
+    var imageURL: URL? = nil
+    /// Round for a person, rounded-square for a company mark.
+    var isCircle: Bool = false
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: MCRITheme.Radius.mark, style: .continuous)
-                .fill(MCRITheme.raised)
+            monogram
+
+            if let imageURL {
+                AsyncImage(url: imageURL) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .empty:
+                        ProgressView()
+                            .tint(MCRITheme.textSecondary)
+                    default:
+                        EmptyView()
+                    }
+                }
+                .frame(width: size, height: size)
+                .clipShape(shape)
+            }
+        }
+        .frame(width: size, height: size)
+        .overlay(shape.strokeBorder(MCRITheme.hairline, lineWidth: 1))
+        .accessibilityHidden(true)
+    }
+
+    private var monogram: some View {
+        ZStack {
+            shape.fill(MCRITheme.raised)
             Text(initials)
                 .font(.system(size: size * 0.36, weight: .bold, design: .rounded))
                 .foregroundStyle(MCRITheme.textPrimary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
-        .frame(width: size, height: size)
-        .overlay(RoundedRectangle(cornerRadius: MCRITheme.Radius.mark, style: .continuous)
-            .strokeBorder(MCRITheme.hairline, lineWidth: 1))
-        .accessibilityHidden(true)
+    }
+
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: isCircle ? size / 2 : MCRITheme.Radius.mark,
+                         style: .continuous)
     }
 }
 
@@ -36,7 +65,8 @@ struct MCRIInternshipCard: View {
         MCRICard(edge: role.score >= 90 ? .orange : .none, padding: MCRITheme.Spacing.s4) {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
                 HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: internship.companyInitials)
+                    MCRILogoTile(initials: internship.companyInitials,
+                           imageURL: mcriLogoURL(internship.companyLogoPath))
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(internship.title)

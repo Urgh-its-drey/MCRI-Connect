@@ -21,6 +21,32 @@ final class CreateInternshipViewModel: ObservableObject {
     @Published var requiredSkills: [String] = []
     @Published var interestsText = ""
 
+    /// When set, the same four steps edit a role the company already published.
+    private let editing: Internship?
+
+    var isEditing: Bool { editing != nil }
+
+    convenience init() {
+        self.init(editing: nil)
+    }
+
+    init(editing: Internship?) {
+        self.editing = editing
+        guard let role = editing else { return }
+        title = role.title
+        location = role.location
+        workMode = role.workMode
+        category = role.category
+        durationWeeks = role.durationWeeks
+        compensation = role.compensation
+        isPaid = role.isPaid
+        easyApply = role.easyApply
+        summary = role.description
+        responsibilitiesText = role.responsibilities.joined(separator: "\n")
+        requiredSkills = role.requiredSkills
+        interestsText = role.careerInterests.joined(separator: ", ")
+    }
+
     var steps: [String] { Self.stepNames }
 
     var responsibilities: [String] {
@@ -65,6 +91,7 @@ final class CreateInternshipViewModel: ObservableObject {
     enum Outcome {
         case advanced
         case published(Internship)
+        case updated(Internship)
         case blocked(String)
     }
 
@@ -72,9 +99,21 @@ final class CreateInternshipViewModel: ObservableObject {
         guard blocker(for: step) == nil else {
             return .blocked(blocker(for: step) ?? "Check this step.")
         }
-        guard !isLastStep else { return .published(publish(store: store)) }
+        guard !isLastStep else { return publish(store: store) }
         step += 1
         return .advanced
+    }
+
+    /// A new role's deadline, or the existing one when editing so a deadline does not move
+    /// just because someone fixed a typo.
+    var closingDate: Date {
+        editing?.closingDate
+            ?? Calendar.current.date(byAdding: .day, value: 28, to: Date())
+            ?? Date()
+    }
+
+    var closesInDays: Int {
+        max(0, Int(ceil(closingDate.timeIntervalSinceNow / 86_400)))
     }
 
     func back() {
@@ -106,31 +145,54 @@ final class CreateInternshipViewModel: ObservableObject {
         }
     }
 
-    private func publish(store: AppStore) -> Internship {
-        let now = Date()
-        let role = Internship(
+    private func publish(store: AppStore) -> Outcome {
+        guard let company = store.currentCompany else {
+            return .blocked("Add your company name on the Company tab before publishing a role.")
+        }
+
+        var role = editing ?? Internship(
             title: title.trimmed,
-            companyID: SampleData.orbitLabs.id,
-            companyName: SampleData.orbitLabs.name,
-            companyInitials: SampleData.orbitLabs.initials,
+            companyID: company.id,
+            companyName: company.name,
+            companyInitials: company.initials,
+            companyLogoPath: company.logoPath,
+            companyIsVerified: company.isVerified,
             location: location.trimmed,
             workMode: workMode,
             durationWeeks: durationWeeks,
-            compensation: isPaid ? compensation.trimmed : "Unpaid · stipend on review",
+            compensation: compensation.trimmed,
             isPaid: isPaid,
             easyApply: easyApply,
-            postedDate: now,
-            closingDate: SampleData.days(28),
+            postedDate: Date(),
+            closingDate: closingDate,
             description: summary.trimmed,
             responsibilities: responsibilities,
             requiredSkills: requiredSkills,
-            preferredSkills: [],
-            careerInterests: careerInterests.isEmpty ? [category.label] : careerInterests,
-            applicants: 0,
+            careerInterests: careerInterests,
             teamSize: 6,
             category: category)
-        store.post(role)
-        return role
+
+        role.title = title.trimmed
+        role.location = location.trimmed
+        role.workMode = workMode
+        role.durationWeeks = durationWeeks
+        role.compensation = isPaid ? compensation.trimmed : "Unpaid · stipend on review"
+        role.isPaid = isPaid
+        role.easyApply = easyApply
+        role.description = summary.trimmed
+        role.responsibilities = responsibilities
+        role.requiredSkills = requiredSkills
+        role.careerInterests = careerInterests.isEmpty ? [category.label] : careerInterests
+        role.category = category
+
+        // The company behind a posting is the account's own record, never form text.
+        let stamped = role.stamped(from: company)
+        if isEditing {
+            store.update(stamped)
+            return .updated(stamped)
+        }
+        store.post(stamped)
+        return .published(stamped)
     }
 }
 

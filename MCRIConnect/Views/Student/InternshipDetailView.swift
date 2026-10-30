@@ -13,6 +13,8 @@ struct InternshipDetailView: View {
 
     private var internship: Internship { viewModel.internship }
 
+    private var isSaved: Bool { store.savedInternshipIDs.contains(internship.id) }
+
     private var applicantLine: String {
         if viewModel.applicantsAhead > 0 {
             return "\(internship.applicants) applicants · you are in the top \(viewModel.result?.percentile ?? 0)%"
@@ -44,7 +46,8 @@ struct InternshipDetailView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-            MCRILogoTile(initials: internship.companyInitials, size: 52)
+            MCRILogoTile(initials: internship.companyInitials, size: 52,
+                       imageURL: mcriLogoURL(internship.companyLogoPath))
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(internship.title)
@@ -276,8 +279,10 @@ struct InternshipDetailView: View {
                     .foregroundStyle(MCRITheme.textTertiary)
             } else {
                 HStack(spacing: MCRITheme.Spacing.s2) {
-                    MCRISecondaryButton(title: "Message", symbol: "bubble.left", fullWidth: false) {
-                        openConversation()
+                    MCRISecondaryButton(title: isSaved ? "Saved" : "Save",
+                                        symbol: isSaved ? "bookmark.fill" : "bookmark",
+                                        fullWidth: false) {
+                        store.toggleSave(internship)
                     }
                     .fixedSize()
 
@@ -298,13 +303,6 @@ struct InternshipDetailView: View {
         .padding(.bottom, MCRITheme.Spacing.s2)
         .background(MCRITheme.sunken.ignoresSafeArea(edges: .bottom))
         .overlay(alignment: .top) { Rectangle().fill(MCRITheme.hairline).frame(height: 1) }
-    }
-
-    private func openConversation() {
-        guard let student = store.currentStudent else { return }
-        let candidate = SampleData.candidate(student, internship: internship, status: .submitted)
-        let thread = store.openThread(with: candidate, as: internship.companyName)
-        router.go(.thread(thread.id))
     }
 }
 

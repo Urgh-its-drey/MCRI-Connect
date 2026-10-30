@@ -20,9 +20,9 @@ struct MCRIField: View {
 
             Group {
                 if isSecure && !revealed {
-                    SecureField(placeholder, text: text, prompt: Text(placeholder).foregroundColor(.mcriCharcoal))
+                    SecureField(placeholder, text: text, prompt: Text(placeholder).foregroundColor(MCRITheme.placeholder))
                 } else {
-                    TextField(placeholder, text: text, prompt: Text(placeholder).foregroundColor(.mcriCharcoal))
+                    TextField(placeholder, text: text, prompt: Text(placeholder).foregroundColor(MCRITheme.placeholder))
                         .keyboardType(keyboard)
                 }
             }
@@ -46,7 +46,7 @@ struct MCRIField: View {
                         } label: {
                             Image(systemName: revealed ? "eye.slash" : "eye")
                                 .font(.system(size: 14))
-                                .foregroundStyle(Color.mcriCharcoal)
+                                .foregroundStyle(MCRITheme.placeholder)
                                 .frame(width: 40, height: 40)
                                 .contentShape(Rectangle())
                         }
@@ -115,7 +115,7 @@ struct MCRITextArea: View {
                     if text.wrappedValue.isEmpty {
                         Text(placeholder)
                             .font(.mcriBody)
-                            .foregroundStyle(Color.mcriCharcoal)
+                            .foregroundStyle(MCRITheme.placeholder)
                             .padding(.leading, MCRITheme.Spacing.s4)
                             .padding(.top, MCRITheme.Spacing.s4)
                             .allowsHitTesting(false)

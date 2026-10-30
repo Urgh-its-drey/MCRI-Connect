@@ -1,10 +1,13 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProfileView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var auth: AuthService
     @EnvironmentObject private var router: Router
     @StateObject private var viewModel = ProfileViewModel()
+
+    @State private var isPickingCV = false
 
     var body: some View {
         Group {
@@ -20,6 +23,7 @@ struct ProfileView: View {
     private func content(_ student: Student) -> some View {
         MCRIPage {
             identityCard(student)
+            photoCard(student)
             readinessCard
             skillsCard(student)
             interestsCard
@@ -27,18 +31,33 @@ struct ProfileView: View {
             projectsCard(student)
             documentsCard(student)
 
-            MCRISecondaryButton(title: "Sign out", symbol: "rectangle.portrait.and.arrow.right",
-                                isDestructive: true) {
-                auth.signOut()
+            MCRIAccountRow(symbol: "person.badge.key.fill",
+                           title: "Account & security",
+                           detail: "Password reset, what the app stores, deleting your account") {
+                router.go(.account)
             }
             .padding(.top, MCRITheme.Spacing.s2)
+        }
+    }
+
+    private func photoCard(_ student: Student) -> some View {
+        MCRICard {
+            MCRIAvatarPicker(title: "Profile photo",
+                             initials: student.initials,
+                             bucket: .avatars,
+                             currentPath: student.avatarPath,
+                             maxExtent: 384,
+                             isCircle: true) { data, extent in
+                store.setAvatarPhoto(data, extent: extent)
+            }
         }
     }
 
     private func identityCard(_ student: Student) -> some View {
         MCRIScreenHero {
             HStack(spacing: MCRITheme.Spacing.s4) {
-                MCRILogoTile(initials: student.initials, size: 62)
+                MCRILogoTile(initials: student.initials, size: 62,
+                       imageURL: mcriAvatarURL(student.avatarPath), isCircle: true)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(student.fullName)
@@ -271,8 +290,9 @@ struct ProfileView: View {
                     }
                     Spacer()
                     MCRISecondaryButton(title: student.cvFileName == nil ? "Attach" : "Replace",
-                                        fullWidth: false, compact: true,
-                                        action: viewModel.uploadCV)
+                                        fullWidth: false, compact: true) {
+                        isPickingCV = true
+                    }
                 }
 
                 if !student.certificates.isEmpty {
@@ -286,6 +306,29 @@ struct ProfileView: View {
                 }
             }
         }
+        .fileImporter(isPresented: $isPickingCV,
+                      allowedContentTypes: [.pdf],
+                      allowsMultipleSelection: false) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first { attach(url) }
+            case .failure:
+                store.toast = .warning("No file chosen", "Employers need a PDF to shortlist you.")
+            }
+        }
+    }
+
+    /// The picker hands over a security-scoped URL, so the file is readable only while this
+    /// call holds the grant.
+    private func attach(_ url: URL) {
+        let granted = url.startAccessingSecurityScopedResource()
+        defer { if granted { url.stopAccessingSecurityScopedResource() } }
+
+        guard let data = try? Data(contentsOf: url) else {
+            store.toast = .danger("Could not read that file", "Try exporting the CV as a new PDF.")
+            return
+        }
+        viewModel.uploadCV(data, fileName: url.lastPathComponent)
     }
 }
 

@@ -1,20 +1,16 @@
 import SwiftUI
 
-/// The student workspace: Home, Explore, Applications, Messages, Profile.
+/// The student workspace. Titles and icons come from `UserRole` so the tab bar and the
+/// role metadata cannot drift apart.
 struct StudentTabView: View {
     @EnvironmentObject private var store: AppStore
     @StateObject private var router = Router()
 
     private var items: [MCRITabBar.Item] {
-        [
-            MCRITabBar.Item(title: "Home", symbol: "house.fill"),
-            MCRITabBar.Item(title: "Explore", symbol: "magnifyingglass"),
-            MCRITabBar.Item(title: "Applications", symbol: "briefcase.fill",
-                            badge: store.activeApplications),
-            MCRITabBar.Item(title: "Messages", symbol: "bubble.left.fill",
-                            badge: store.unreadMessages),
-            MCRITabBar.Item(title: "Profile", symbol: "person.fill"),
-        ]
+        MCRIPreview.tabs(for: .student, badges: [
+            2: store.activeApplications,
+            3: store.unreadMessages,
+        ])
     }
 
     var body: some View {
@@ -29,6 +25,7 @@ struct StudentTabView: View {
                 }
             }
             .mcriDestinations()
+            .mcriFollowThreadTargets(router, role: .student)
         }
         .environmentObject(router)
     }
@@ -36,6 +33,6 @@ struct StudentTabView: View {
 
 private struct StudentTabViewPreview1: PreviewProvider {
     static var previews: some View {
-    MCRIPreviewScreen(inNavigationStack: false) { StudentTabView() }
-}
+        MCRIPreviewScreen(inNavigationStack: false) { StudentTabView() }
+    }
 }

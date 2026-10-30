@@ -47,7 +47,7 @@ final class InternshipDetailViewModel: ObservableObject {
 
     var similarRoles: [MatchedRole] {
         guard let student = store.currentStudent else { return [] }
-        return store.internships
+        return store.publishedRoles
             .filter { $0.id != internship.id && $0.category == internship.category }
             .map { MatchedRole(internship: $0, result: MatchEngine.shared.result(for: student, on: $0)) }
             .sorted { $0.score > $1.score }

@@ -114,7 +114,7 @@ struct CandidatePipelineView: View {
                 } onAdvance: {
                     viewModel.advance(candidate)
                 } onMessage: {
-                    router.go(.thread(viewModel.message(candidate)))
+                    viewModel.message(candidate)
                 }
             }
         }

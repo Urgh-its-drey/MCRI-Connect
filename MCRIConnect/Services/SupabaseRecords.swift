@@ -3,6 +3,15 @@ import Foundation
 // Row shapes for the views the schema exposes, and column shapes for writes. Both spell
 // keys the way Postgres does, because the PostgREST coder does not convert between cases.
 
+// Older read views return null initials for a single-word name. Treat the monogram as
+// optional presentation data so it cannot prevent an otherwise valid workspace loading.
+private func resolvedInitials(_ value: String?, name: String) -> String {
+    guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        return NameParts.initials(name)
+    }
+    return value
+}
+
 // MARK: - Identity
 
 struct ProfileDTO: Decodable {
@@ -30,7 +39,7 @@ struct ProfileDTO: Decodable {
 struct StudentRecordDTO: Decodable {
     let id: String
     let full_name: String
-    let initials: String
+    let initials: String?
     let programme: String
     let year: String
     let city: String
@@ -49,7 +58,7 @@ struct StudentRecordDTO: Decodable {
     var domain: Student {
         Student(id: UUID(uuidString: id) ?? UUID(),
                 fullName: full_name,
-                initials: initials.isEmpty ? NameParts.initials(full_name) : initials,
+                initials: resolvedInitials(initials, name: full_name),
                 programme: programme,
                 year: year,
                 city: city,
@@ -227,7 +236,7 @@ struct CandidateRecordDTO: Decodable {
     let student_id: String
     let stage: String
     let full_name: String
-    let initials: String
+    let initials: String?
     let avatar_path: String?
     let programme: String
     let year: String
@@ -245,7 +254,7 @@ struct CandidateRecordDTO: Decodable {
     func student(id: UUID) -> Student {
         Student(id: id,
                 fullName: full_name,
-                initials: initials.isEmpty ? NameParts.initials(full_name) : initials,
+                initials: resolvedInitials(initials, name: full_name),
                 programme: programme,
                 year: year,
                 city: city,
@@ -267,7 +276,7 @@ struct PlacementRecordDTO: Decodable {
     let id: String
     let student_id: String
     let student_name: String
-    let initials: String
+    let initials: String?
     let avatar_path: String?
     let stage: String
     let readiness: Int
@@ -279,7 +288,7 @@ struct PlacementRecordDTO: Decodable {
         Placement(id: UUID(uuidString: id) ?? UUID(),
                   studentID: UUID(uuidString: student_id) ?? UUID(),
                   studentName: student_name,
-                  initials: initials,
+                  initials: resolvedInitials(initials, name: student_name),
                   avatarPath: avatar_path,
                   stage: PlacementStage(rawValue: stage) ?? .preparing,
                   readiness: readiness,
@@ -312,7 +321,7 @@ struct ConversationRecordDTO: Decodable {
     let unread: Int
     let participant_id: String?
     let participant_name: String
-    let participant_initials: String
+    let participant_initials: String?
     let participant_avatar_path: String?
     let messages: [Message]
 
@@ -320,7 +329,7 @@ struct ConversationRecordDTO: Decodable {
         MessageThread(id: UUID(uuidString: id) ?? UUID(),
                       participantID: participant_id.flatMap(UUID.init),
                       participantName: participant_name,
-                      participantInitials: participant_initials,
+                      participantInitials: resolvedInitials(participant_initials, name: participant_name),
                       participantAvatarPath: participant_avatar_path,
                       context: context.isEmpty ? subject : context,
                       messages: messages,

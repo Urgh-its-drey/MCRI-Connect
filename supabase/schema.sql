@@ -501,7 +501,7 @@ select
   st.id,
   p.full_name,
   upper(left(split_part(trim(p.full_name), ' ', 1), 1)
-     || left(nullif(split_part(trim(p.full_name), ' ', 2), ''), 1)) as initials,
+     || coalesce(left(nullif(split_part(trim(p.full_name), ' ', 2), ''), 1), '')) as initials,
   st.programme,
   st.year,
   st.city,
@@ -585,7 +585,7 @@ select
   st.id           as student_id,
   p.full_name,
   upper(left(split_part(trim(p.full_name), ' ', 1), 1)
-     || left(nullif(split_part(trim(p.full_name), ' ', 2), ''), 1)) as initials,
+     || coalesce(left(nullif(split_part(trim(p.full_name), ' ', 2), ''), 1), '')) as initials,
   p.avatar_path,
   st.programme, st.year, st.city, st.work_mode, st.availability, st.bio,
   st.profile_strength, st.advisor, st.cv_name,
@@ -608,7 +608,7 @@ select
   p.full_name as student_name,
   p.avatar_path,
   upper(left(split_part(trim(p.full_name), ' ', 1), 1)
-     || left(nullif(split_part(trim(p.full_name), ' ', 2), ''), 1)) as initials,
+     || coalesce(left(nullif(split_part(trim(p.full_name), ' ', 2), ''), 1), '')) as initials,
   i.title as internship_title,
   coalesce((select jsonb_agg(k.name) from public.student_skills k
             where k.student_id = pl.student_id order by k.proficiency desc limit 4),
@@ -629,7 +629,7 @@ select
   peer.full_name       as participant_name,
   peer.avatar_path     as participant_avatar_path,
   upper(left(split_part(trim(peer.full_name), ' ', 1), 1)
-     || left(nullif(split_part(trim(peer.full_name), ' ', 2), ''), 1)) as participant_initials,
+     || coalesce(left(nullif(split_part(trim(peer.full_name), ' ', 2), ''), 1), '')) as participant_initials,
   coalesce((select jsonb_agg(jsonb_build_object(
               'id', m.id, 'threadID', m.thread_id, 'body', m.body,
               'sentAt', m.sent_at,

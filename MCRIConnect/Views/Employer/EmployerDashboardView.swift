@@ -36,7 +36,7 @@ struct EmployerDashboardView: View {
                     router.go(.internships)
                 }
                 MCRIStatCard(label: "Awaiting review", value: "\(viewModel.awaitingReview)",
-                             detail: "Oldest waiting 4 days",
+                             detail: viewModel.oldestWaitLabel,
                              symbol: "hourglass", tone: .attention) {
                     router.select(tab: 2)
                 }
@@ -75,19 +75,21 @@ struct EmployerDashboardView: View {
     private var hero: some View {
         MCRIScreenHero {
             HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                MCRILogoTile(initials: viewModel.company.initials, size: 46)
+                MCRILogoTile(initials: viewModel.company?.initials ?? "M", size: 46,
+                             imageURL: mcriLogoURL(viewModel.company?.logoPath))
                 VStack(alignment: .leading, spacing: 3) {
                     Text(auth.session.displayName.isEmpty ? "Talent team" : auth.session.displayName)
                         .font(.mcriCaption2.weight(.bold))
                         .tracking(1.1)
                         .textCase(.uppercase)
                         .foregroundStyle(MCRITheme.primaryAction)
-                    Text(viewModel.company.name)
+                    Text(viewModel.companyName)
                         .font(.mcriDisplay)
                         .foregroundStyle(MCRITheme.textPrimary)
-                    Text("\(viewModel.company.teamLabel) · \(viewModel.company.hiredLastCycle) hired last cycle")
+                    Text(heroSubtitle)
                         .font(.mcriFootnote)
                         .foregroundStyle(MCRITheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: MCRITheme.Spacing.s2)
                 MCRIMatchRing(score: viewModel.averageMatch, size: 62, lineWidth: 5, caption: "fit")
@@ -99,12 +101,20 @@ struct EmployerDashboardView: View {
         }
     }
 
+    private var heroSubtitle: String {
+        guard let company = viewModel.company else {
+            return "Roles you publish appear here with their applicants."
+        }
+        return "\(company.teamLabel) · \(company.hiredLastCycle) hired last cycle"
+    }
+
     private func reviewCard(_ candidate: Candidate) -> some View {
         MCRICard(edge: .orange) {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
                 MCRISectionHeader(title: "First to action")
                 HStack(spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: candidate.initials, size: 40)
+                    MCRILogoTile(initials: candidate.initials, size: 40,
+                           imageURL: mcriAvatarURL(candidate.student.avatarPath), isCircle: true)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(candidate.name)
                             .font(.mcriCardTitle)
@@ -160,7 +170,7 @@ struct EmployerDashboardView: View {
         } onAdvance: {
             viewModel.advance(candidate)
         } onMessage: {
-            router.go(.thread(viewModel.message(candidate)))
+            viewModel.message(candidate)
         }
     }
 

@@ -24,4 +24,10 @@ extension Color {
     static let mcriCharcoal = Color(hex: "#55595C")
     static let mcriGray = Color(hex: "#89929A")
     static let mcriLightNavy = Color(hex: "#1D4865")
+
+    /// Grey card on the navy canvas: 10.8:1 with white text, 6.0:1 with the tertiary tier.
+    static let mcriSlate = Color(hex: "#303B45")
+    /// Placeholder and caption grey that still clears 5:1 on a slate card.
+    static let mcriMist = Color(hex: "#A9B4BD")
+    static let mcriSlateText = Color(hex: "#D4DAE0")
 }

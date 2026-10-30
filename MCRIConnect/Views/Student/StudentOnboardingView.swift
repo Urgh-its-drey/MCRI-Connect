@@ -253,10 +253,11 @@ struct StudentOnboardingView: View {
 
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s2) {
                 MCRISectionHeader(title: "First matches on this profile")
-                ForEach(viewModel.previewMatches) { role in
+                ForEach(viewModel.previewMatches(in: store)) { role in
                     MCRICard(padding: MCRITheme.Spacing.s3) {
                         HStack(spacing: MCRITheme.Spacing.s3) {
-                            MCRILogoTile(initials: role.internship.companyInitials, size: 36)
+                            MCRILogoTile(initials: role.internship.companyInitials, size: 36,
+                                       imageURL: mcriLogoURL(role.internship.companyLogoPath))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(role.internship.title)
                                     .font(.mcriCaption.weight(.semibold))

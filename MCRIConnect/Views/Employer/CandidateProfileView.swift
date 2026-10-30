@@ -46,7 +46,8 @@ struct CandidateProfileView: View {
     private var header: some View {
         MCRICard(edge: candidate.isTopPick ? .orange : .blue) {
             HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                MCRILogoTile(initials: student.initials, size: 56)
+                MCRILogoTile(initials: student.initials, size: 56,
+                       imageURL: mcriAvatarURL(student.avatarPath), isCircle: true)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(student.fullName)
@@ -244,18 +245,21 @@ struct CandidateProfileView: View {
         }
     }
 
+    /// The employer sees the same timeline the student sees, straight from the application row.
     private var timeline: [TimelineEvent] {
-        var events = [TimelineEvent(title: "Applied", detail: role?.title, date: SampleData.days(-6))]
-        if candidate.status != .submitted {
-            events.append(TimelineEvent(title: candidate.status.label, date: SampleData.hours(-18)))
+        let application = store.applications.first {
+            $0.studentID == candidate.student.id && $0.internshipID == candidate.internshipID
         }
-        return events
+        if let application, !application.timeline.isEmpty { return application.timeline }
+        return [TimelineEvent(title: "Application received",
+                              detail: role?.title,
+                              date: application?.submittedDate ?? Date())]
     }
 
     private var actionBar: some View {
         HStack(spacing: MCRITheme.Spacing.s2) {
             MCRISecondaryButton(title: "Message", symbol: "bubble.left", fullWidth: false) {
-                router.go(.thread(viewModel.message(candidate)))
+                viewModel.message(candidate)
             }
 
             Menu {

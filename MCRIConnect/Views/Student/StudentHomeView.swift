@@ -52,7 +52,7 @@ struct StudentHomeView: View {
                                title: "No applications yet",
                                message: "Open a match above and Easy Apply sends the profile you just built.",
                                actionTitle: "Browse roles") {
-                    router.go(.internship(SampleData.productDesignIntern.id))
+                    router.select(tab: 1)
                 }
             } else {
                 ForEach(viewModel.activeApplications.prefix(3)) { application in

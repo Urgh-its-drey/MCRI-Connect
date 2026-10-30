@@ -140,7 +140,8 @@ struct ApplicationDetailView: View {
         MCRICard {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s4) {
                 HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: role?.companyInitials ?? "?", size: 44)
+                    MCRILogoTile(initials: role?.companyInitials ?? "?", size: 44,
+                           imageURL: mcriLogoURL(role?.companyLogoPath))
                     VStack(alignment: .leading, spacing: 2) {
                         Text(role?.title ?? "Role closed")
                             .font(.mcriCardTitle)

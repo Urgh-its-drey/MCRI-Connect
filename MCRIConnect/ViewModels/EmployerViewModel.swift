@@ -34,13 +34,17 @@ final class EmployerViewModel: ObservableObject {
 
     // MARK: Reads
 
-    var company: Company { SampleData.orbitLabs }
+    /// The company the signed-in account belongs to. Never a sample row: an employer's brand,
+    /// verification state and role list all come from the server.
+    var company: Company? { store.currentCompany }
+
+    var companyName: String { company?.name ?? "Your company" }
 
     var postings: [Internship] { store.openRoles }
 
-    var livePostings: [Internship] { postings.filter { $0.daysUntilDeadline > 0 } }
+    var livePostings: [Internship] { postings.filter { !$0.isClosed } }
 
-    var closedPostings: [Internship] { postings.filter { $0.daysUntilDeadline <= 0 } }
+    var closedPostings: [Internship] { postings.filter { $0.isClosed } }
 
     var pipeline: [Candidate] { store.employerCandidates }
 
@@ -68,6 +72,29 @@ final class EmployerViewModel: ObservableObject {
     }
 
     var awaitingReview: Int { candidates(in: .submitted).count }
+
+    /// Age of the application that has waited longest, read from its own submit date.
+    var oldestWaitLabel: String {
+        let waiting = candidates(in: .submitted)
+        guard !waiting.isEmpty else { return "Nothing waiting" }
+        let applicationDates = applications(in: waiting).map(\.submittedDate)
+        guard let oldest = applicationDates.min() else {
+            return "\(waiting.count) awaiting your first review"
+        }
+        let days = max(0, Int(Date().timeIntervalSince(oldest) / 86_400))
+        guard days > 0 else { return "Newest arrived today" }
+        return "Oldest waiting \(days) \(days == 1 ? "day" : "days")"
+    }
+
+    func application(for candidate: Candidate) -> Application? {
+        store.applications.first {
+            $0.studentID == candidate.student.id && $0.internshipID == candidate.internshipID
+        }
+    }
+
+    private func applications(in candidates: [Candidate]) -> [Application] {
+        candidates.compactMap { application(for: $0) }
+    }
 
     var inInterview: Int { candidates(in: .interviewScheduled).count }
 
@@ -100,8 +127,6 @@ final class EmployerViewModel: ObservableObject {
         store.internship(for: candidate.internshipID)
     }
 
-    func isSaved(_ roleID: UUID) -> Bool { store.savedInternshipIDs.contains(roleID) }
-
     // MARK: Actions
 
     func advance(_ candidate: Candidate) {
@@ -113,9 +138,10 @@ final class EmployerViewModel: ObservableObject {
         store.move(candidate: candidate, to: stage)
     }
 
-    /// Message from the pipeline: reuses an existing thread when there is one.
-    func message(_ candidate: Candidate) -> UUID {
-        store.openThread(with: candidate, as: company.name).id
+    /// Message from the pipeline: reuses an existing thread when there is one. The store
+    /// publishes the thread id, and the workspace stack opens it.
+    func message(_ candidate: Candidate) {
+        store.openThread(with: candidate, as: companyName)
     }
 
     func select(role: Internship) {

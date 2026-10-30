@@ -49,7 +49,7 @@ struct EmployerInternshipsView: View {
     private var header: some View {
         HStack(spacing: MCRITheme.Spacing.s2) {
             VStack(alignment: .leading, spacing: 1) {
-                Text("Published by \(viewModel.company.name)")
+                Text("Published by \(viewModel.companyName)")
                     .font(.mcriFootnote)
                     .foregroundStyle(MCRITheme.textTertiary)
                 Text("\(viewModel.pipeline.count) applicants in total")
@@ -120,7 +120,7 @@ struct EmployerInternshipsView: View {
                     }
                     Spacer(minLength: MCRITheme.Spacing.s2)
                     if live {
-                        MCRISecondaryButton(title: "Review", symbol: "person.2.fill",
+                        MCRISecondaryButton(title: "Applicants", symbol: "person.2.fill",
                                             fullWidth: false, compact: true) {
                             viewModel.select(role: role)
                             router.select(tab: 2)
@@ -131,12 +131,15 @@ struct EmployerInternshipsView: View {
                             reopen(role)
                         }
                     }
+
+                    MCRIButton(title: "Edit", symbol: "pencil", fullWidth: false) {
+                        router.go(.editInternship(role.id))
+                    }
                 }
             }
         }
         .onTapGesture {
-            guard live else { return }
-            router.go(.internship(role.id))
+            router.go(.editInternship(role.id))
         }
         .accessibilityElement(children: .contain)
         .accessibilityLabel("\(role.title), \(applicants.count) applicants, \(live ? "live" : "closed")")
@@ -144,9 +147,11 @@ struct EmployerInternshipsView: View {
 
     private func reopen(_ role: Internship) {
         var updated = role
-        updated.closingDate = SampleData.days(21)
+        updated.status = .open
+        updated.closingDate = Calendar.current.date(byAdding: .day, value: 21, to: Date())
+            ?? Date().addingTimeInterval(21 * 86_400)
         store.update(updated)
-        store.toast = .success("Role reopened", "\(updated.title) is live again.")
+        store.toast = .success("Role reopened", "\(updated.title) is live for 21 more days.")
     }
 }
 

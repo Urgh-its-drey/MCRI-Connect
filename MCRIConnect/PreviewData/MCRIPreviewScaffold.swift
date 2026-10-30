@@ -26,7 +26,9 @@ struct MCRIPreviewScreen<Content: View>: View {
         .environmentObject(router)
         .mcriToast($store.toast)
         .task {
-            if auth.session.role != signedInAs { auth.switchRole(signedInAs) }
+            #if DEBUG
+            if !auth.canOpen(signedInAs) { store.previewAsSignedIn(role: signedInAs) }
+            #endif
             if store.students.isEmpty { await store.load() }
         }
     }
@@ -109,11 +111,12 @@ enum MCRIPreview {
                                                 status: .shortlisted)
     static let application = SampleData.applications[0]
 
-    static let studentTabs = [
-        MCRITabBar.Item(title: "Home", symbol: "house.fill"),
-        MCRITabBar.Item(title: "Explore", symbol: "magnifyingglass"),
-        MCRITabBar.Item(title: "Applications", symbol: "doc.text.fill", badge: 3),
-        MCRITabBar.Item(title: "Messages", symbol: "bubble.left.fill", badge: 1),
-        MCRITabBar.Item(title: "Profile", symbol: "person.fill"),
-    ]
+    /// Built from the role's own tab metadata so a preview can never drift from the app.
+    static func tabs(for role: UserRole, badges: [Int: Int] = [:]) -> [MCRITabBar.Item] {
+        zip(role.tabTitles, role.tabSymbols).enumerated().map { index, pair in
+            MCRITabBar.Item(title: pair.0, symbol: pair.1, badge: badges[index] ?? 0)
+        }
+    }
+
+    static var studentTabs: [MCRITabBar.Item] { tabs(for: .student, badges: [2: 3, 3: 1]) }
 }

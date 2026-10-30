@@ -38,7 +38,7 @@ final class ProfileViewModel: ObservableObject {
 
     var matchedRolesLifted: Int {
         guard let student else { return 0 }
-        return store.internships.filter { MatchEngine.shared.score(for: student, on: $0) >= 70 }.count
+        return store.publishedRoles.filter { MatchEngine.shared.score(for: student, on: $0) >= 70 }.count
     }
 
     func beginNameEdit() {
@@ -49,9 +49,11 @@ final class ProfileViewModel: ObservableObject {
     func commitName() {
         guard var student, nameDraft.count >= 2 else { return }
         student.fullName = nameDraft
-        student.initials = String(nameDraft.split(separator: " ").prefix(2).compactMap { $0.first }).uppercased()
+        student.initials = NameParts.initials(nameDraft)
         store.updateStudent(student)
         editName = false
+        // The account row carries the name the header and the tab bar show, so it follows too.
+        Task { await store.updateAccountName(nameDraft) }
     }
 
     func commitBio() {
@@ -80,18 +82,22 @@ final class ProfileViewModel: ObservableObject {
         store.toast = Toast.success("Work mode set", mode.label)
     }
 
-    func uploadCV() {
-        guard let name = student?.fullName.split(separator: " ").first else { return }
-        store.uploadCV(named: "\(name.lowercased())-cv.pdf")
+    func uploadCV(_ data: Data, fileName: String) {
+        store.uploadCV(data, named: fileName)
+    }
+
+    func setAvatarPhoto(_ data: Data, extent: String) {
+        store.setAvatarPhoto(data, extent: extent)
     }
 
     func toggleInterest(_ interest: String) {
-        guard var student else { return }
-        if student.interests.contains(interest) {
-            student.interests.removeAll { $0 == interest }
+        guard let student else { return }
+        var updated = student.interests
+        if updated.contains(interest) {
+            updated.removeAll { $0 == interest }
         } else {
-            student.interests.append(interest)
+            updated.append(interest)
         }
-        store.updateStudent(student)
+        store.setInterests(updated)
     }
 }

@@ -1,18 +1,17 @@
 import SwiftUI
 
-/// The programme manager workspace: Overview, Students, Placements, Reports, Settings.
+/// The programme manager workspace: Overview, Students, Employers, Placements, Reports.
+/// Settings is a pushed screen rather than a tab, which keeps all five tabs on the
+/// programme's own data.
 struct ProgramManagerTabView: View {
     @EnvironmentObject private var store: AppStore
     @StateObject private var router = Router()
 
     private var items: [MCRITabBar.Item] {
-        [
-            MCRITabBar.Item(title: "Overview", symbol: "chart.bar.fill"),
-            MCRITabBar.Item(title: "Students", symbol: "person.2.fill"),
-            MCRITabBar.Item(title: "Placements", symbol: "arrow.triangle.branch"),
-            MCRITabBar.Item(title: "Reports", symbol: "doc.text.fill", badge: store.alerts.count),
-            MCRITabBar.Item(title: "Settings", symbol: "gearshape.fill"),
-        ]
+        MCRIPreview.tabs(for: .programManager, badges: [
+            2: store.pendingCompanies.count,
+            4: store.alerts.count,
+        ])
     }
 
     var body: some View {
@@ -21,12 +20,13 @@ struct ProgramManagerTabView: View {
                 switch index {
                 case 0: ManagerOverviewView()
                 case 1: ManagerStudentsView()
-                case 2: PlacementPipelineView()
-                case 3: ReportsView()
-                default: ManagerSettingsView()
+                case 2: ManagerEmployersView()
+                case 3: PlacementPipelineView()
+                default: ReportsView()
                 }
             }
             .mcriDestinations()
+            .mcriFollowThreadTargets(router, role: .programManager)
         }
         .environmentObject(router)
     }
@@ -34,6 +34,6 @@ struct ProgramManagerTabView: View {
 
 private struct ProgramManagerTabViewPreview1: PreviewProvider {
     static var previews: some View {
-    MCRIPreviewScreen(signedInAs: .programManager, inNavigationStack: false) { ProgramManagerTabView() }
-}
+        MCRIPreviewScreen(signedInAs: .programManager, inNavigationStack: false) { ProgramManagerTabView() }
+    }
 }

@@ -55,9 +55,11 @@ final class OnboardingViewModel: ObservableObject {
         return min(score, 100)
     }
 
-    var previewMatches: [MatchedRole] {
+    /// Scored against the roles that are live on the server right now, so the preview
+    /// a student sees on the last step is the same list they land on after finishing.
+    func previewMatches(in store: AppStore) -> [MatchedRole] {
         let student = draftStudent
-        return SampleData.internships
+        return store.publishedRoles
             .map { MatchedRole(internship: $0, result: MatchEngine.shared.result(for: student, on: $0)) }
             .sorted { $0.score > $1.score }
             .prefix(2)

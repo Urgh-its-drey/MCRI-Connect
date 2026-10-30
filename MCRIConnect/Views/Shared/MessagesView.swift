@@ -41,7 +41,8 @@ struct MessagesView: View {
             router.go(.thread(thread.id))
         } label: {
             HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                MCRILogoTile(initials: thread.participantInitials, size: 42)
+                MCRILogoTile(initials: thread.participantInitials, size: 42,
+                               imageURL: mcriAvatarURL(thread.participantAvatarPath), isCircle: true)
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(alignment: .firstTextBaseline, spacing: MCRITheme.Spacing.s2) {
@@ -138,7 +139,8 @@ struct MessageThreadView: View {
     private func contextHeader(_ thread: MessageThread) -> some View {
         VStack(spacing: MCRITheme.Spacing.s2) {
             HStack(spacing: MCRITheme.Spacing.s3) {
-                MCRILogoTile(initials: thread.participantInitials, size: 38)
+                MCRILogoTile(initials: thread.participantInitials, size: 38,
+                               imageURL: mcriAvatarURL(thread.participantAvatarPath), isCircle: true)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(thread.participantName)
                         .font(.mcriCardTitle)
@@ -155,7 +157,7 @@ struct MessageThreadView: View {
 
     private var composer: some View {
         HStack(spacing: MCRITheme.Spacing.s2) {
-            TextField("Write a message", text: $viewModel.draft, prompt: Text("Write a message").foregroundColor(.mcriCharcoal), axis: .vertical)
+            TextField("Write a message", text: $viewModel.draft, prompt: Text("Write a message").foregroundColor(MCRITheme.placeholder), axis: .vertical)
                 .font(.mcriBody)
                 .foregroundStyle(Color.mcriNavy)
                 .lineLimit(1...4)

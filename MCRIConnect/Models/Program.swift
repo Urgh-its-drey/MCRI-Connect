@@ -35,6 +35,7 @@ struct Placement: Identifiable, Codable, Hashable {
     var studentID: UUID
     var studentName: String
     var initials: String
+    var avatarPath: String?
     var stage: PlacementStage
     var readiness: Int
     var topSkills: [String]
@@ -42,12 +43,14 @@ struct Placement: Identifiable, Codable, Hashable {
     var internshipTitle: String?
 
     init(id: UUID = UUID(), studentID: UUID, studentName: String, initials: String,
+         avatarPath: String? = nil,
          stage: PlacementStage, readiness: Int, topSkills: [String], advisor: String,
          internshipTitle: String? = nil) {
         self.id = id
         self.studentID = studentID
         self.studentName = studentName
         self.initials = initials
+        self.avatarPath = avatarPath
         self.stage = stage
         self.readiness = readiness
         self.topSkills = topSkills

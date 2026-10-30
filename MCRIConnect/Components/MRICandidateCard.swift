@@ -13,7 +13,8 @@ struct MCRICandidateCard: View {
         MCRICard(edge: candidate.isTopPick ? .orange : .none, padding: MCRITheme.Spacing.s4) {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
                 HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: candidate.initials, size: 42)
+                    MCRILogoTile(initials: candidate.initials, size: 42,
+                           imageURL: mcriAvatarURL(candidate.student.avatarPath), isCircle: true)
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(candidate.name)

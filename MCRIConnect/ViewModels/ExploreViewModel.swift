@@ -32,7 +32,7 @@ final class ExploreViewModel: ObservableObject {
     var results: [MatchedRole] {
         guard let student = store.currentStudent else { return [] }
 
-        let scored = store.internships.compactMap { role -> MatchedRole? in
+        let scored = store.publishedRoles.compactMap { role -> MatchedRole? in
             guard matches(role) else { return nil }
             return MatchedRole(internship: role, result: MatchEngine.shared.result(for: student, on: role))
         }

@@ -114,7 +114,7 @@ struct MCRISearchBar: View {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(MCRITheme.placeholder)
-                TextField(placeholder, text: $text, prompt: Text(placeholder).foregroundColor(.mcriCharcoal))
+                TextField(placeholder, text: $text, prompt: Text(placeholder).foregroundColor(MCRITheme.placeholder))
                     .font(.mcriBody)
                     .foregroundStyle(Color.mcriNavy)
                     .tint(MCRITheme.primaryAction)

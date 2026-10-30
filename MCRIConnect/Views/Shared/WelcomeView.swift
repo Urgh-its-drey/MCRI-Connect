@@ -2,29 +2,13 @@ import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var store: AppStore
     @StateObject private var viewModel = WelcomeViewModel()
-
-    private var roles: Int { max(SampleData.internships.count, 121) }
-    private var employers: Int { SampleData.companies.count }
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s6) {
-                HStack(spacing: MCRITheme.Spacing.s3) {
-                    MCRIBrandMark(size: 40)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("MCRI Connect").font(.mcriCardTitle).foregroundStyle(MCRITheme.textPrimary)
-                        Text("Internship placement").font(.mcriCaption2).foregroundStyle(MCRITheme.textTertiary)
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 1) {
-                        Text("\(roles) open roles")
-                            .font(.mcriCaption.weight(.bold)).foregroundStyle(MCRITheme.primaryAction)
-                        Text("\(employers) verified employers")
-                            .font(.mcriCaption2).foregroundStyle(MCRITheme.textTertiary)
-                    }
-                }
-                .padding(.top, MCRITheme.Spacing.s2)
+                header
 
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Connect your skills")
@@ -42,22 +26,6 @@ struct WelcomeView: View {
                     .foregroundStyle(MCRITheme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
 
-                MCRICard(padding: MCRITheme.Spacing.s3) {
-                    VStack(spacing: 0) {
-                        valueRow(symbol: "target", tone: MCRITheme.primaryAction,
-                                 title: "Matches you can explain",
-                                 detail: "Skills, interests and logistics — scored separately")
-                        divider
-                        valueRow(symbol: "checkmark.seal.fill", tone: MCRITheme.secondaryAction,
-                                 title: "Verified employers only",
-                                 detail: "\(employers) partners who hire from this cohort")
-                        divider
-                        valueRow(symbol: "chart.line.uptrend.xyaxis", tone: MCRITheme.accent,
-                                 title: "Every application tracked",
-                                 detail: "From submitted to offer, with the next action")
-                    }
-                }
-
                 VStack(spacing: MCRITheme.Spacing.s3) {
                     MCRIButton(title: "Create account", symbol: "arrow.right") {
                         viewModel.begin(.signUp)
@@ -66,36 +34,7 @@ struct WelcomeView: View {
                         viewModel.begin(.signIn)
                     }
                     MCRILinkButton(title: "Forgot password?") {
-                        auth.authError = "We would email a reset link to your address."
-                    }
-                }
-
-                VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
-                    MCRISectionHeader(title: "Continue as")
-                    HStack(spacing: MCRITheme.Spacing.s2) {
-                        ForEach(UserRole.allCases) { role in
-                            Button {
-                                auth.continueAs(role)
-                            } label: {
-                                VStack(spacing: 6) {
-                                    Image(systemName: role.glyph)
-                                        .font(.system(size: 17, weight: .semibold))
-                                    Text(role.welcomeTitle)
-                                        .font(.mcriCaption2.weight(.semibold))
-                                        .multilineTextAlignment(.center)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.7)
-                                }
-                                .foregroundStyle(MCRITheme.textSecondary)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: MCRITheme.Metrics.minTapTarget + 14)
-                                .background(MCRITheme.surface, in: RoundedRectangle(cornerRadius: MCRITheme.Radius.control,
-                                                                                   style: .continuous))
-                                .overlay(RoundedRectangle(cornerRadius: MCRITheme.Radius.control, style: .continuous)
-                                    .strokeBorder(MCRITheme.border, lineWidth: 1))
-                            }
-                            .buttonStyle(MCRIPressStyle())
-                        }
+                        viewModel.begin(.reset)
                     }
                 }
 
@@ -119,25 +58,25 @@ struct WelcomeView: View {
         }
     }
 
-    private var divider: some View {
-        Rectangle().fill(MCRITheme.divider).frame(height: 1).padding(.vertical, 2)
-    }
-
-    private func valueRow(symbol: String, tone: Color, title: String, detail: String) -> some View {
-        HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-            Image(systemName: symbol)
-                .font(.system(size: 15, weight: .bold))
-                .foregroundStyle(tone)
-                .frame(width: 22)
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.mcriCardTitle).foregroundStyle(MCRITheme.textPrimary)
-                Text(detail).font(.mcriFootnote).foregroundStyle(MCRITheme.textTertiary)
-                    .fixedSize(horizontal: false, vertical: true)
+    /// Live counts come from the snapshot, so the welcome screen cannot quote a number the
+    /// programme no longer has.
+    private var header: some View {
+        HStack(spacing: MCRITheme.Spacing.s3) {
+            MCRIBrandMark(size: 40)
+            VStack(alignment: .leading, spacing: 1) {
+                Text("MCRI Connect").font(.mcriCardTitle).foregroundStyle(MCRITheme.textPrimary)
+                Text("Internship placement").font(.mcriCaption2).foregroundStyle(MCRITheme.textTertiary)
             }
-            Spacer(minLength: 0)
+            Spacer()
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("\(store.publishedRoles.count) open roles")
+                    .font(.mcriCaption.weight(.bold)).foregroundStyle(MCRITheme.primaryAction)
+                Text("\(store.verifiedCompanies.count) verified "
+                     + (store.verifiedCompanies.count == 1 ? "employer" : "employers"))
+                    .font(.mcriCaption2).foregroundStyle(MCRITheme.textTertiary)
+            }
         }
-        .padding(.vertical, MCRITheme.Spacing.s3)
+        .padding(.top, MCRITheme.Spacing.s2)
     }
 }
 
@@ -146,78 +85,122 @@ private struct AuthFormSheet: View {
     var form: WelcomeViewModel.Form
 
     var body: some View {
-        VStack(alignment: .leading, spacing: MCRITheme.Spacing.s5) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(form == .signUp ? "Create your account" : "Welcome back")
-                    .font(.mcriTitle)
-                    .foregroundStyle(MCRITheme.textPrimary)
-                Text(form == .signUp
-                     ? "Students, employers and programme managers each get their own workspace."
-                     : "Log in with the address you registered with your institution.")
-                    .font(.mcriFootnote)
-                    .foregroundStyle(MCRITheme.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.top, MCRITheme.Spacing.s6)
-
-            VStack(alignment: .leading, spacing: MCRITheme.Spacing.s4) {
-                if form == .signUp {
-                    MCRIField(label: "Full name", placeholder: "Thando Mthembu", text: $viewModel.fullName,
-                              keyboard: .namePhonePad, autocapitalization: .words)
+        ScrollView {
+            VStack(alignment: .leading, spacing: MCRITheme.Spacing.s5) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(form.title)
+                        .font(.mcriTitle)
+                        .foregroundStyle(MCRITheme.textPrimary)
+                    Text(form.subtitle)
+                        .font(.mcriFootnote)
+                        .foregroundStyle(MCRITheme.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                .padding(.top, MCRITheme.Spacing.s6)
 
-                MCRIField(label: "Institution email", placeholder: "you@institution.ac.za",
-                          text: $viewModel.email, keyboard: .emailAddress)
+                VStack(alignment: .leading, spacing: MCRITheme.Spacing.s4) {
+                    if form == .signUp {
+                        MCRIField(label: "Full name", placeholder: "Thando Mthembu", text: $viewModel.fullName,
+                                  keyboard: .namePhonePad, autocapitalization: .words)
+                    }
 
-                MCRIField(label: "Password", placeholder: "At least 6 characters", text: $viewModel.password,
-                          isSecure: true, errorMessage: viewModel.errorText)
+                    MCRIField(label: "Institution email", placeholder: "you@institution.ac.za",
+                              text: $viewModel.email, keyboard: .emailAddress)
 
-                if form == .signUp {
-                    VStack(alignment: .leading, spacing: MCRITheme.Spacing.s2) {
-                        Text("I am joining as").mcriLabelStyle()
-                        HStack(spacing: MCRITheme.Spacing.s2) {
-                            ForEach(UserRole.allCases) { role in
-                                MCRIFilterChip(title: role.welcomeTitle,
-                                               isSelected: viewModel.role == role) {
-                                    viewModel.role = role
-                                }
-                            }
+                    if form != .reset {
+                        MCRIField(label: "Password", placeholder: passwordPlaceholder,
+                                  text: $viewModel.password, isSecure: true)
+                    }
+
+                    if form == .signUp {
+                        rolePicker
+                        if viewModel.needsCompanyName {
+                            MCRIField(label: "Company name", placeholder: "Orbit Labs (Pty) Ltd",
+                                      text: $viewModel.companyName, autocapitalization: .words)
+                        }
+                    }
+
+                    statusLine
+
+                    MCRIButton(title: form.actionTitle,
+                               symbol: "arrow.right",
+                               isDisabled: !viewModel.canSubmit,
+                               isLoading: viewModel.isBusy) {
+                        Task { await viewModel.submit() }
+                    }
+
+                    if form != .reset {
+                        MCRILinkButton(title: form == .signUp ? "Already registered? Log in" : "New here? Create account",
+                                       symbol: "arrow.right") {
+                            viewModel.begin(form == .signUp ? .signIn : .signUp)
+                        }
+                    } else {
+                        MCRILinkButton(title: "Back to log in", symbol: "arrow.left") {
+                            viewModel.begin(.signIn)
                         }
                     }
                 }
+            }
+            .padding(.horizontal, MCRITheme.Spacing.screenMargin)
+            .padding(.bottom, MCRITheme.Spacing.s8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(MCRITheme.background)
+    }
 
-                if let error = viewModel.errorText, !error.isEmpty {
-                    HStack(spacing: MCRITheme.Spacing.s2) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption)
-                            .foregroundStyle(MCRITheme.blocked)
-                        Text(error).font(.mcriCaption).foregroundStyle(MCRITheme.textSecondary)
+    private var passwordPlaceholder: String {
+        form == .signUp ? "At least 8 characters" : "Your password"
+    }
+
+    private var rolePicker: some View {
+        VStack(alignment: .leading, spacing: MCRITheme.Spacing.s2) {
+            Text("I am joining as").mcriLabelStyle()
+            HStack(spacing: MCRITheme.Spacing.s2) {
+                ForEach(UserRole.allCases) { role in
+                    MCRIFilterChip(title: role.welcomeTitle, isSelected: viewModel.role == role) {
+                        viewModel.role = role
                     }
                 }
-
-                MCRIButton(title: form == .signUp ? "Create account" : "Log in",
-                           symbol: "arrow.right",
-                           isDisabled: !viewModel.canSubmit,
-                           isLoading: viewModel.isBusy) {
-                    Task { await viewModel.submit() }
-                }
-
-                MCRILinkButton(title: form == .signUp ? "Already registered? Log in" : "New here? Create account",
-                               symbol: "arrow.right") {
-                    viewModel.begin(form == .signUp ? .signIn : .signUp)
-                }
             }
-
-            Spacer()
+            Text(roleHint)
+                .font(.mcriCaption2)
+                .foregroundStyle(MCRITheme.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, MCRITheme.Spacing.screenMargin)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(MCRITheme.background)
+    }
+
+    private var roleHint: String {
+        switch viewModel.role {
+        case .student:
+            return "Your institution's email links you to your cohort and adviser."
+        case .employer:
+            return "You hire as a company. A programme manager verifies it before your roles reach students."
+        case .programManager:
+            return "Managers sign up with an MCRI staff address. Other addresses are held pending review."
+        }
+    }
+
+    @ViewBuilder private var statusLine: some View {
+        if let error = viewModel.errorText, !error.isEmpty {
+            HStack(alignment: .top, spacing: MCRITheme.Spacing.s2) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(MCRITheme.blocked)
+                Text(error).font(.mcriCaption).foregroundStyle(MCRITheme.textSecondary)
+            }
+        } else if let notice = viewModel.noticeText, !notice.isEmpty {
+            HStack(alignment: .top, spacing: MCRITheme.Spacing.s2) {
+                Image(systemName: "envelope.fill")
+                    .font(.caption)
+                    .foregroundStyle(MCRITheme.secondaryAction)
+                Text(notice).font(.mcriCaption).foregroundStyle(MCRITheme.textSecondary)
+            }
+        }
     }
 }
 
 private struct WelcomeViewPreview1: PreviewProvider {
     static var previews: some View {
-    MCRIPreviewScreen(inNavigationStack: false) { WelcomeView() }
-}
+        MCRIPreviewScreen(inNavigationStack: false) { WelcomeView() }
+    }
 }

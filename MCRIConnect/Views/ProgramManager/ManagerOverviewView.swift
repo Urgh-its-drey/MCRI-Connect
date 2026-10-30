@@ -52,9 +52,15 @@ struct ManagerOverviewView: View {
 
             MCRISectionHeader(title: "Placement funnel",
                               subtitle: "Your active caseload, stage by stage") {
-                MCRILinkButton(title: "Pipeline") { router.select(tab: 2) }
+                MCRILinkButton(title: "Pipeline") { router.select(tab: 3) }
             }
             funnelCard
+
+            MCRISectionHeader(title: "Hiring companies",
+                              subtitle: "\(viewModel.verifiedCompanies.count) verified · \(viewModel.pendingCompanies.count) awaiting review") {
+                MCRILinkButton(title: "All employers") { router.go(.companies) }
+            }
+            companiesCard
 
             MCRISectionHeader(title: "Advisor load")
             advisorCard
@@ -121,6 +127,51 @@ struct ManagerOverviewView: View {
     private var funnelCard: some View {
         MCRICard {
             MCRIFunnel(segments: viewModel.funnel)
+        }
+    }
+
+    private var companiesCard: some View {
+        MCRICard {
+            VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
+                if viewModel.companies.isEmpty {
+                    Text("Companies appear here as employers create their accounts.")
+                        .font(.mcriFootnote)
+                        .foregroundStyle(MCRITheme.textTertiary)
+                } else {
+                    ForEach(viewModel.companies.prefix(4)) { company in
+                        Button {
+                            router.go(.company(company.id))
+                        } label: {
+                            HStack(spacing: MCRITheme.Spacing.s3) {
+                                MCRILogoTile(initials: company.initials, size: 34,
+                                             imageURL: mcriLogoURL(company.logoPath))
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(company.name)
+                                        .font(.mcriCaption.weight(.semibold))
+                                        .foregroundStyle(MCRITheme.textPrimary)
+                                    Text("\(viewModel.openRoles(of: company).count) open · "
+                                         + "\(viewModel.applications(of: company)) applications")
+                                        .font(.mcriFootnote)
+                                        .foregroundStyle(MCRITheme.textTertiary)
+                                }
+                                Spacer(minLength: MCRITheme.Spacing.s2)
+                                if company.isVerified {
+                                    MCRIStatusBadge("Verified", tone: .positive)
+                                } else {
+                                    MCRIStatusBadge("Review", tone: .attention)
+                                }
+                            }
+                            .frame(minHeight: MCRITheme.Metrics.minTapTarget)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        if company.id != viewModel.companies.prefix(4).last?.id {
+                            Rectangle().fill(MCRITheme.divider).frame(height: 1)
+                        }
+                    }
+                }
+            }
         }
     }
 

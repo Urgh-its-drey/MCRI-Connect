@@ -15,7 +15,8 @@ struct MCRIApplicationRow: View {
                  padding: MCRITheme.Spacing.s4) {
             VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
                 HStack(alignment: .top, spacing: MCRITheme.Spacing.s3) {
-                    MCRILogoTile(initials: role?.companyInitials ?? "?", size: 40)
+                    MCRILogoTile(initials: role?.companyInitials ?? "?", size: 40,
+                           imageURL: mcriLogoURL(role?.companyLogoPath))
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text(role?.title ?? "Role closed")

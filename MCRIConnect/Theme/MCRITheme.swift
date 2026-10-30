@@ -1,38 +1,39 @@
 import SwiftUI
 
-/// Tokens for the MCRI Connect design system. Every value maps 1:1 onto
-/// `build/palette.mjs` in the Figma pack, so a change here and a re-run of
-/// `node build/index.mjs` keep the app and the sheets in sync.
+/// Tokens for the MCRI Connect design system. The canvas stays navy and every content block
+/// sits on a grey card, because text on the light-navy surface measured below AA. Slate at
+/// `#303B45` carries white at 10.8:1 and the tertiary tier at 6.0:1.
 struct MCRITheme {
     static let background = Color.mcriNavy
-    static let surface = Color.mcriLightNavy
+    static let surface = Color.mcriSlate
     static let primaryAction = Color.mcriOrange
     static let secondaryAction = Color.mcriBlue
     static let accent = Color.mcriRed
     static let primaryText = Color.mcriWhite
-    static let secondaryText = Color.mcriCharcoal
-    static let placeholder = Color.mcriGray
+    static let secondaryText = Color.mcriSlateText
+    static let placeholder = Color.mcriMist
 
     /// Charcoal measures 1.7:1 on navy, so it is reserved for light surfaces.
     /// Text on the dark canvas uses these blended-white tiers instead.
     static let textPrimary = Color.mcriWhite
-    static let textSecondary = Color.mcriWhite.opacity(0.72)
-    static let textTertiary = Color.mcriWhite.opacity(0.55)
+    static let textSecondary = Color.mcriWhite.opacity(0.80)
+    static let textTertiary = Color.mcriWhite.opacity(0.68)
     static let textOnAccent = Color.mcriNavy
 
-    static let sunken = Color(hex: "#0F2A3D")
-    static let raised = Color(hex: "#2A536E")
+    /// One step below the card: inputs, wells and message bubbles sit inside a card.
+    static let sunken = Color(hex: "#222A31")
+    static let raised = Color(hex: "#3D4A56")
 
-    static let hairline = Color.mcriBlue.opacity(0.20)
-    static let border = Color.mcriBlue.opacity(0.38)
+    static let hairline = Color.mcriWhite.opacity(0.10)
+    static let border = Color.mcriWhite.opacity(0.22)
     static let borderStrong = Color.mcriBlue
     static let divider = Color.mcriWhite.opacity(0.10)
 
-    static let orangeTint = Color.mcriOrange.opacity(0.16)
-    static let blueTint = Color.mcriBlue.opacity(0.16)
-    static let redTint = Color.mcriRed.opacity(0.22)
-    static let grayTint = Color.mcriGray.opacity(0.16)
-    static let surfaceHi = Color.mcriWhite.opacity(0.06)
+    static let orangeTint = Color.mcriOrange.opacity(0.18)
+    static let blueTint = Color.mcriBlue.opacity(0.18)
+    static let redTint = Color.mcriRed.opacity(0.24)
+    static let grayTint = Color.mcriMist.opacity(0.16)
+    static let surfaceHi = Color.mcriWhite.opacity(0.08)
 
     static let matchStrong = Color.mcriOrange
     static let matchGood = Color.mcriBlue

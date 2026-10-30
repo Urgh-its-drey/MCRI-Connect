@@ -5,9 +5,13 @@ import SwiftUI
 struct CreateInternshipView: View {
     @EnvironmentObject private var store: AppStore
     @EnvironmentObject private var router: Router
-    @StateObject private var viewModel = CreateInternshipViewModel()
+    @StateObject private var viewModel: CreateInternshipViewModel
 
     @State private var blocker: String?
+
+    init(role: Internship? = nil) {
+        _viewModel = StateObject(wrappedValue: CreateInternshipViewModel(editing: role))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,6 +19,8 @@ struct CreateInternshipView: View {
 
             ScrollView {
                 VStack(spacing: MCRITheme.Spacing.s4) {
+                    companyStrip
+
                     stepContent
                 }
                 .padding(.horizontal, MCRITheme.Spacing.screenMargin)
@@ -25,8 +31,30 @@ struct CreateInternshipView: View {
 
             footer
         }
-        .mcriScreen(title: "Post a role", hidesTitle: false)
+        .mcriScreen(title: viewModel.isEditing ? "Edit role" : "Post a role", hidesTitle: false)
         .background(MCRITheme.background.ignoresSafeArea())
+    }
+
+    /// The publishing account, shown so the employer never mistakes a role for a personal post.
+    private var companyStrip: some View {
+        HStack(spacing: MCRITheme.Spacing.s3) {
+            MCRILogoTile(initials: store.currentCompany?.initials ?? "?", size: 34,
+                         imageURL: mcriLogoURL(store.currentCompany?.logoPath))
+            VStack(alignment: .leading, spacing: 1) {
+                Text(store.currentCompany?.name ?? "No company on this account")
+                    .font(.mcriCaption.weight(.semibold))
+                    .foregroundStyle(MCRITheme.textPrimary)
+                Text(store.currentCompany.map { $0.isVerified ? "Verified employer" : "Awaiting verification" }
+                     ?? "Add your company on the Company tab")
+                    .font(.mcriCaption2)
+                    .foregroundStyle(store.currentCompany?.isVerified == true
+                                     ? MCRITheme.positive : MCRITheme.textTertiary)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(MCRITheme.Spacing.s3)
+        .background(MCRITheme.sunken, in: RoundedRectangle(cornerRadius: MCRITheme.Radius.control,
+                                                            style: .continuous))
     }
 
     private var header: some View {
@@ -195,12 +223,13 @@ struct CreateInternshipView: View {
             MCRICard(edge: .orange) {
                 VStack(alignment: .leading, spacing: MCRITheme.Spacing.s3) {
                     HStack(spacing: MCRITheme.Spacing.s3) {
-                        MCRILogoTile(initials: SampleData.orbitLabs.initials, size: 44)
+                        MCRILogoTile(initials: store.currentCompany?.initials ?? "?", size: 44,
+                                     imageURL: mcriLogoURL(store.currentCompany?.logoPath))
                         VStack(alignment: .leading, spacing: 2) {
                             Text(viewModel.title.isEmpty ? "Untitled role" : viewModel.title)
                                 .font(.mcriCardTitle)
                                 .foregroundStyle(MCRITheme.textPrimary)
-                            Text("\(SampleData.orbitLabs.name) · \(viewModel.location.isEmpty ? "Location needed" : viewModel.location)")
+                            Text("\(store.currentCompany?.name ?? "Your company") · \(viewModel.location.isEmpty ? "Location needed" : viewModel.location)")
                                 .font(.mcriFootnote)
                                 .foregroundStyle(MCRITheme.textSecondary)
                         }
@@ -228,7 +257,10 @@ struct CreateInternshipView: View {
                         if viewModel.easyApply {
                             MCRIStatusBadge("Easy Apply", symbol: "bolt.fill", tone: .attention)
                         }
-                        MCRIStatusBadge("Closes in 28 days", symbol: "calendar", tone: .neutral)
+                        MCRIStatusBadge(viewModel.isEditing
+                                        ? "Closes \(viewModel.closingDate.formatted(date: .abbreviated, time: .omitted))"
+                                        : "Closes in \(viewModel.closesInDays) days",
+                                        symbol: "calendar", tone: .neutral)
                         Spacer(minLength: 0)
                     }
                 }
@@ -270,8 +302,12 @@ struct CreateInternshipView: View {
                     }
                 }
                 Spacer(minLength: 0)
-                MCRIButton(title: viewModel.isLastStep ? "Publish role" : "Continue",
-                           symbol: viewModel.isLastStep ? "paperplane.fill" : "arrow.right",
+                MCRIButton(title: viewModel.isLastStep
+                                ? (viewModel.isEditing ? "Save changes" : "Publish role")
+                                : "Continue",
+                           symbol: viewModel.isLastStep
+                                ? (viewModel.isEditing ? "checkmark" : "paperplane.fill")
+                                : "arrow.right",
                            fullWidth: false) {
                     submit()
                 }
@@ -293,6 +329,9 @@ struct CreateInternshipView: View {
             router.popToRoot()
             router.select(tab: 1)
             store.toast = .success("Role live", "\(role.title) is visible to matched students.")
+        case .updated(let role):
+            router.pop()
+            store.toast = .success("Role updated", "\(role.title) now carries the new detail.")
         }
     }
 }

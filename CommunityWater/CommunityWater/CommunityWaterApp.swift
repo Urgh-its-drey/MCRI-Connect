@@ -4,11 +4,16 @@ import UIKit
 @main
 struct CommunityWaterApp: App {
     @StateObject private var store = WaterStore()
+    @StateObject private var auth = AuthStore()
     @Environment(\.scenePhase) private var phase
 
     var body: some Scene {
         WindowGroup {
-            ExploreView().environmentObject(store).tint(WaterTheme.teal)
+            Group {
+                if auth.canExplore { ExploreView() }
+                else { WelcomeView() }
+            }.environmentObject(store).environmentObject(auth).tint(WaterTheme.teal)
+                .onChange(of: store.configuration) { _, _ in auth.signOut() }
                 .task {
                     store.startMonitoring()
                     await store.sync()

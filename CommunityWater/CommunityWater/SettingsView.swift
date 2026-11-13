@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject private var store: WaterStore
+    @EnvironmentObject private var auth: AuthStore
     @Environment(\.dismiss) private var dismiss
     @State private var url = ""
     @State private var key = ""
@@ -10,6 +11,17 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section("Your account") {
+                    if let user = auth.user {
+                        Label(user.email ?? "Community member", systemImage: "person.crop.circle")
+                        Button("Sign out", role: .destructive) { auth.signOut(); dismiss() }
+                    } else {
+                        Text(auth.isGuest ? "Browsing as a guest" : "Welcome to Community Water")
+                        if auth.isGuest {
+                            Button("Sign in or create an account") { auth.signOut(); dismiss() }
+                        }
+                    }
+                }
                 Section("Community connection") {
                     Text(store.isDemo ? "Demo mode" : "Connected to \(store.configuration?.endpoint?.host ?? "community")").font(.headline)
                     Text("Your community administrator supplies a Supabase project URL and its public publishable key. Never enter a service-role or secret key.")
@@ -28,7 +40,7 @@ struct SettingsView: View {
                     }
                     Text("Each community and demo mode have separate caches. Switching connections keeps pending reports in their original community.")
                         .font(.caption).foregroundStyle(.secondary)
-                }
+                }.disabled(auth.busy)
                 Section("Sync & offline access") {
                     LabeledContent("Connection", value: store.connected ? "Online" : "Offline")
                     LabeledContent("Pending reports", value: String(store.pending.count))

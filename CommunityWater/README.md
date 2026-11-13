@@ -6,7 +6,15 @@ A new, standalone SwiftUI iPhone app for iOS 17+. Existing Waterline and MCRI Co
 
 Open `CommunityWater/CommunityWater.xcodeproj` from the repository root, select the **CommunityWater** scheme and an iPhone simulator, then press **Run**. No packages, account or signing team are needed for the simulator. For a physical iPhone, select your Apple development team under Signing & Capabilities and use a unique bundle identifier if needed.
 
-The app starts in **Demo** mode with clearly labelled illustrative Harare locations. These are not verified water sources. Demo reports stay on the device and are never uploaded. The sample timestamps are fixed rather than being refreshed on launch.
+The app opens on a welcome screen with **Create an account**, **I already have an account** and **Explore as a guest**. Guest access works immediately in **Demo** mode with clearly labelled illustrative Harare locations. These are not verified water sources. Demo reports stay on the device and are never uploaded. The sample timestamps are fixed rather than being refreshed on launch.
+
+## Welcome and accounts
+
+The welcome, sign-in and sign-up screens support email/password authentication through the configured community's Supabase Auth service. Open the welcome screen's gear button to configure a community. Enable the Email provider and sign-ups in Supabase Authentication. The sign-up form checks email format, an eight-character password minimum and matching confirmation. Sign-in includes password visibility and loading/error states. If email confirmation is enabled, sign-up shows inbox instructions; confirm the email in your browser, return to the app and sign in. An existing account may receive the same confirmation response to avoid exposing whether an email is registered.
+
+Successful sign-in opens the map. Settings shows the account email and **Sign out**. Accounts are optional for browsing; the existing pilot reporting backend still permits anonymous reports and does not attach account identity to report rows. The session is local to the current app run: passwords and tokens are not saved on disk, and relaunch returns to welcome. A community change clears the current account. Offline caches and device-local reports remain available through guest access.
+
+Real sign-in/sign-up requires a configured Supabase project and internet access. Demo mode does not create pretend accounts.
 
 ## Implemented user stories
 
@@ -62,9 +70,17 @@ swiftc -module-cache-path /tmp/community-water-module-cache \
   CommunityWater/CommunityWater/WaterStore.swift \
   CommunityWater/Tests/CommunityChecks.swift -o /tmp/community-water-checks
 /tmp/community-water-checks
+
+swiftc -module-cache-path /tmp/community-water-module-cache \
+  CommunityWater/CommunityWater/Models.swift \
+  CommunityWater/CommunityWater/AuthStore.swift \
+  CommunityWater/Tests/AuthChecks.swift -o /tmp/community-water-auth-checks
+/tmp/community-water-auth-checks
 ```
 
 Checks cover local persistence, independent report fields, empty history, late observations, persistent upload failures, successful retry, deduplication, local ownership after refresh, isolated community/demo caches, validation, failed-save rollback and corruption recovery. The sync checks use an injected service; they do not establish that a hosted Supabase instance has been deployed.
+
+Account checks use an injected authentication service and cover guest access, sign-out, email/password validation, missing backend configuration, confirmation-required sign-up, failed sign-in and successful account transitions. Live email delivery and authentication must also be checked against your configured Supabase project.
 
 Manual device checks: map/list/filter combinations; marker selection; saved places; a crowded working source; repaired but still broken source; backdated reports; relaunch persistence; location allowed/denied; offline access; and two-device sync once the backend is configured.
 
